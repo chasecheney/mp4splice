@@ -76,7 +76,7 @@ struct JoinView: View {
 
     private var fileTable: some View {
         Table(items, selection: $selection) {
-            TableColumn("File") { Text($0.displayName) }
+            TableColumn("File") { fileCell($0) }
             TableColumn("Duration") { Text($0.durationString) }
                 .width(80)
             TableColumn("Size") { Text($0.sizeString) }
@@ -101,9 +101,66 @@ struct JoinView: View {
         }
     }
 
+    @ViewBuilder
+    private func fileCell(_ item: MediaItem) -> some View {
+        let issues = mismatchMessages(for: item)
+        HStack(spacing: 4) {
+            Text(item.displayName)
+            if !issues.isEmpty {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.yellow)
+                    .help("Differs from the other files — " + issues.joined(separator: ", "))
+            }
+        }
+    }
+
     private var selectedItem: MediaItem? {
         guard selection.count == 1, let id = selection.first else { return nil }
         return items.first { $0.id == id }
+    }
+
+    // MARK: - Mismatch detection
+
+    /// Returns labels describing how `item` deviates from the majority of the list
+    /// (resolution, frame rate, video/audio codec). Empty when it matches or info isn't loaded.
+    private func mismatchMessages(for item: MediaItem) -> [String] {
+        guard items.count > 1 else { return [] }
+        var messages: [String] = []
+
+        let resKey: (MediaItem) -> String = { "\($0.width)×\($0.height)" }
+        if item.width > 0, distinctCount(resKey) > 1,
+           let common = majority(resKey), resKey(item) != common {
+            messages.append("Resolution \(item.resolutionString)")
+        }
+
+        let fpsKey: (MediaItem) -> Int = { Int(($0.frameRate * 100).rounded()) }
+        if item.frameRate > 0, distinctCount(fpsKey) > 1,
+           let common = majority(fpsKey), fpsKey(item) != common {
+            messages.append("Frame rate \(item.frameRateString)")
+        }
+
+        if !item.videoCodec.isEmpty, distinctCount({ $0.videoCodec }) > 1,
+           let common = majority({ $0.videoCodec }), item.videoCodec != common {
+            messages.append("Video codec \(item.videoCodecString)")
+        }
+
+        let audioKey: (MediaItem) -> String = { $0.audioCodec.isEmpty ? "none" : $0.audioCodec }
+        if distinctCount(audioKey) > 1,
+           let common = majority(audioKey), audioKey(item) != common {
+            messages.append("Audio codec \(item.audioCodecString)")
+        }
+
+        return messages
+    }
+
+    /// Most common value of `key` across the loaded items.
+    private func majority<T: Hashable>(_ key: (MediaItem) -> T) -> T? {
+        let counts = Dictionary(grouping: items.map(key), by: { $0 }).mapValues(\.count)
+        return counts.max { $0.value < $1.value }?.key
+    }
+
+    private func distinctCount<T: Hashable>(_ key: (MediaItem) -> T) -> Int {
+        Set(items.map(key)).count
     }
 
     @ViewBuilder
@@ -120,6 +177,16 @@ struct JoinView: View {
                 .font(.callout)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(6)
+
+                let issues = mismatchMessages(for: item)
+                if !issues.isEmpty {
+                    Label("Differs from other files: \(issues.joined(separator: ", "))",
+                          systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 6)
+                        .padding(.bottom, 6)
+                }
             }
         }
     }
