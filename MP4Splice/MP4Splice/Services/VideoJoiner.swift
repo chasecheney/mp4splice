@@ -102,7 +102,8 @@ enum VideoJoiner {
 
             let natural = try await sourceVideo.load(.naturalSize)
             let preferred = try await sourceVideo.load(.preferredTransform)
-            let transform = fitTransform(naturalSize: natural, preferred: preferred, into: renderSize)
+            let transform = fitTransform(naturalSize: natural, preferred: preferred,
+                                         into: renderSize, fill: settings.fillFrame)
 
             let layer = AVMutableVideoCompositionLayerInstruction(assetTrack: compVideo)
             layer.setTransform(transform, at: cursor)
@@ -139,17 +140,19 @@ enum VideoJoiner {
         return CGSize(width: abs(r.width), height: abs(r.height))
     }
 
-    /// Builds a transform that orients a clip, scales it to fit `renderSize` preserving
-    /// aspect ratio, and centers it (letterboxing as needed).
+    /// Builds a transform that orients a clip, scales it into `renderSize`, and centers it.
+    /// `fill == false` fits the whole frame (letterbox); `fill == true` covers the frame (crop).
     private static func fitTransform(naturalSize: CGSize,
                                      preferred: CGAffineTransform,
-                                     into renderSize: CGSize) -> CGAffineTransform {
+                                     into renderSize: CGSize,
+                                     fill: Bool) -> CGAffineTransform {
         let oriented = naturalSize.applying(preferred)
         let orientedSize = CGSize(width: abs(oriented.width), height: abs(oriented.height))
         guard orientedSize.width > 0, orientedSize.height > 0 else { return preferred }
 
-        let scale = min(renderSize.width / orientedSize.width,
-                        renderSize.height / orientedSize.height)
+        let scaleX = renderSize.width / orientedSize.width
+        let scaleY = renderSize.height / orientedSize.height
+        let scale = fill ? max(scaleX, scaleY) : min(scaleX, scaleY)
         let scaledW = orientedSize.width * scale
         let scaledH = orientedSize.height * scale
         let tx = (renderSize.width - scaledW) / 2

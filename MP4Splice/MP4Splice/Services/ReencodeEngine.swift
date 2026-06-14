@@ -91,7 +91,7 @@ enum ReencodeEngine {
             AVVideoCodecKey: settings.codec.avCodec,
             AVVideoWidthKey: outWidth,
             AVVideoHeightKey: outHeight,
-            AVVideoScalingModeKey: AVVideoScalingModeResizeAspect,
+            AVVideoScalingModeKey: settings.fillFrame ? AVVideoScalingModeResizeAspectFill : AVVideoScalingModeResizeAspect,
             AVVideoCompressionPropertiesKey: compression
         ])
         videoInput.expectsMediaDataInRealTime = false

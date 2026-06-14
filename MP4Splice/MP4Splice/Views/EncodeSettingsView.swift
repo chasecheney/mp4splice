@@ -33,6 +33,10 @@ struct EncodeSettingsView: View {
                     .frame(width: 200)
                 }
                 GridRow {
+                    Text("Aspect")
+                    Toggle("Fill frame (crop instead of letterbox)", isOn: $settings.fillFrame)
+                }
+                GridRow {
                     Text("Video bitrate")
                     HStack(spacing: 8) {
                         Slider(value: $settings.videoBitrateMbps, in: 1...150, step: 1)

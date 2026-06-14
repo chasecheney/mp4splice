@@ -92,6 +92,7 @@ struct EncodeSettings: Equatable {
     var codec: Codec = .h264
     var resolution: Resolution = .p1080
     var frameRate: FrameRate = .f30
+    var fillFrame: Bool = false   // false = letterbox (fit), true = fill (crop)
     var videoBitrateMbps: Double = 10
     var audioBitrateKbps: Int = 192
     var audioSampleRate: Int = 48_000
