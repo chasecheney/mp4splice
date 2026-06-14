@@ -40,6 +40,7 @@ enum VideoSplitter {
                       outputDir: URL,
                       baseName: String,
                       reencode: Bool = false,
+                      settings: EncodeSettings = EncodeSettings(),
                       progress: @escaping @MainActor (Double) -> Void) async throws -> [URL] {
         guard !segments.isEmpty else { throw VideoError.noInputs }
 
@@ -48,26 +49,35 @@ enum VideoSplitter {
         var outputs: [URL] = []
 
         for (index, segment) in segments.enumerated() {
-            let preset = reencode ? AVAssetExportPresetHighestQuality : AVAssetExportPresetPassthrough
-            guard let session = AVAssetExportSession(asset: asset, presetName: preset) else {
-                throw VideoError.exportSessionUnavailable
-            }
-
             let fileName = String(format: "%@-%02d.mp4", baseName, index + 1)
             let outURL = outputDir.appendingPathComponent(fileName)
             try? FileManager.default.removeItem(at: outURL)
 
-            session.outputURL = outURL
-            session.outputFileType = .mp4
-            session.shouldOptimizeForNetworkUse = true
-            session.timeRange = CMTimeRange(
+            let range = CMTimeRange(
                 start: CMTime(seconds: segment.start, preferredTimescale: timescale),
                 end: CMTime(seconds: segment.end, preferredTimescale: timescale))
 
             // Spread per-segment progress across the overall bar.
-            try await ExportHelper.run(session) { p in
-                let overall = (Double(index) + p) / Double(segments.count)
-                progress(overall)
+            let report: @MainActor (Double) -> Void = { p in
+                progress((Double(index) + p) / Double(segments.count))
+            }
+
+            if reencode {
+                // Explicit codec/bitrate control via AVAssetWriter (hardware-accelerated).
+                try await ReencodeEngine.encode(
+                    asset: asset, timeRange: range, to: outURL,
+                    settings: settings, progress: report)
+            } else {
+                // Lossless passthrough remux.
+                guard let session = AVAssetExportSession(
+                    asset: asset, presetName: AVAssetExportPresetPassthrough) else {
+                    throw VideoError.exportSessionUnavailable
+                }
+                session.outputURL = outURL
+                session.outputFileType = .mp4
+                session.shouldOptimizeForNetworkUse = true
+                session.timeRange = range
+                try await ExportHelper.run(session, progress: report)
             }
             outputs.append(outURL)
         }

@@ -56,11 +56,21 @@ MP4Splice/
 
 ## How processing works
 
-Joining builds an `AVMutableComposition`, inserting each source's video and audio track
-end to end, then exports with `AVAssetExportPresetPassthrough` (no re-encode) when possible.
-Splitting runs one export per segment with a `timeRange` set on the export session.
-Toggle **Re-encode** to switch to `AVAssetExportPresetHighestQuality` (VideoToolbox), which
-fixes joins between clips with differing resolutions or codecs at the cost of speed.
+By default (no re-encode), joining builds an `AVMutableComposition` and exports with
+`AVAssetExportPresetPassthrough` — a lossless remux. Splitting runs one passthrough export
+per segment with a `timeRange`. These paths do no encoding and are fast.
+
+Toggle **Re-encode** to route through `ReencodeEngine`, an `AVAssetReader` → `AVAssetWriter`
+pipeline that gives explicit control over output format:
+
+- **Codec** — H.264 or HEVC (H.265)
+- **Video bitrate** — 1–50 Mbps average target
+- **Audio bitrate** — 128/192/256/320 kbps AAC
+- **Sample rate** — 44.1 or 48 kHz
+
+A video composition normalizes per-clip rotation and size into one render space, so joins
+between mismatched sources work. On Apple Silicon, VideoToolbox runs H.264/HEVC encoding on
+the hardware media engine automatically, so re-encoding is hardware-accelerated.
 
 ## Notes / next steps
 

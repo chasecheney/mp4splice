@@ -4,6 +4,7 @@ struct JoinView: View {
     @State private var items: [MediaItem] = []
     @State private var selection = Set<MediaItem.ID>()
     @State private var reencode = false
+    @State private var settings = EncodeSettings()
 
     @State private var isWorking = false
     @State private var progress: Double = 0
@@ -42,6 +43,10 @@ struct JoinView: View {
 
             Toggle("Re-encode (slower, fixes mismatched formats)", isOn: $reencode)
                 .font(.callout)
+
+            if reencode {
+                EncodeSettingsView(settings: $settings)
+            }
 
             controls
         }
@@ -136,7 +141,8 @@ struct JoinView: View {
             try await VideoJoiner.join(
                 urls: items.map(\.url),
                 to: output,
-                reencode: reencode) { p in progress = p }
+                reencode: reencode,
+                settings: settings) { p in progress = p }
             status = "Saved to \(output.lastPathComponent)"
         } catch {
             errorMessage = error.localizedDescription

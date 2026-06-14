@@ -17,6 +17,9 @@
 		B00000000000000000000008 /* Panels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000008 /* Panels.swift */; };
 		B00000000000000000000009 /* JoinView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000009 /* JoinView.swift */; };
 		B00000000000000000000010 /* SplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000010 /* SplitView.swift */; };
+		B00000000000000000000013 /* EncodeSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000013 /* EncodeSettings.swift */; };
+		B00000000000000000000014 /* ReencodeEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000014 /* ReencodeEngine.swift */; };
+		B00000000000000000000015 /* EncodeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000015 /* EncodeSettingsView.swift */; };
 		B00000000000000000000011 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000011 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -32,6 +35,9 @@
 		F00000000000000000000009 /* JoinView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoinView.swift; sourceTree = "<group>"; };
 		F00000000000000000000010 /* SplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitView.swift; sourceTree = "<group>"; };
 		F00000000000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F00000000000000000000013 /* EncodeSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncodeSettings.swift; sourceTree = "<group>"; };
+		F00000000000000000000014 /* ReencodeEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReencodeEngine.swift; sourceTree = "<group>"; };
+		F00000000000000000000015 /* EncodeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncodeSettingsView.swift; sourceTree = "<group>"; };
 		F00000000000000000000012 /* MP4Splice.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MP4Splice.entitlements; sourceTree = "<group>"; };
 		F000000000000000000000FF /* MP4Splice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MP4Splice.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -81,6 +87,7 @@
 			isa = PBXGroup;
 			children = (
 				F00000000000000000000003 /* MediaItem.swift */,
+				F00000000000000000000013 /* EncodeSettings.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -93,6 +100,7 @@
 				F00000000000000000000006 /* VideoJoiner.swift */,
 				F00000000000000000000007 /* VideoSplitter.swift */,
 				F00000000000000000000008 /* Panels.swift */,
+				F00000000000000000000014 /* ReencodeEngine.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -102,6 +110,7 @@
 			children = (
 				F00000000000000000000009 /* JoinView.swift */,
 				F00000000000000000000010 /* SplitView.swift */,
+				F00000000000000000000015 /* EncodeSettingsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -185,6 +194,9 @@
 				B00000000000000000000008 /* Panels.swift in Sources */,
 				B00000000000000000000009 /* JoinView.swift in Sources */,
 				B00000000000000000000010 /* SplitView.swift in Sources */,
+				B00000000000000000000013 /* EncodeSettings.swift in Sources */,
+				B00000000000000000000014 /* ReencodeEngine.swift in Sources */,
+				B00000000000000000000015 /* EncodeSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

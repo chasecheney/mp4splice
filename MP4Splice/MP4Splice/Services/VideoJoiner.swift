@@ -8,6 +8,7 @@ enum VideoJoiner {
     static func join(urls: [URL],
                      to outputURL: URL,
                      reencode: Bool = false,
+                     settings: EncodeSettings = EncodeSettings(),
                      progress: @escaping @MainActor (Double) -> Void) async throws {
         guard !urls.isEmpty else { throw VideoError.noInputs }
 
@@ -40,8 +41,17 @@ enum VideoJoiner {
             cursor = cursor + duration
         }
 
-        let preset = reencode ? AVAssetExportPresetHighestQuality : AVAssetExportPresetPassthrough
-        guard let session = AVAssetExportSession(asset: composition, presetName: preset) else {
+        // Re-encode path: explicit codec/bitrate control via AVAssetWriter (hardware-accelerated).
+        if reencode {
+            try await ReencodeEngine.encode(
+                asset: composition, timeRange: nil, to: outputURL,
+                settings: settings, progress: progress)
+            return
+        }
+
+        // Default path: lossless passthrough remux.
+        guard let session = AVAssetExportSession(
+            asset: composition, presetName: AVAssetExportPresetPassthrough) else {
             throw VideoError.exportSessionUnavailable
         }
 

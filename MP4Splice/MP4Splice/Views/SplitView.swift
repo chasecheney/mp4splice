@@ -11,6 +11,8 @@ struct SplitView: View {
     @State private var mode: Mode = .equalParts
     @State private var partCount = 2
     @State private var splitPointText = ""
+    @State private var reencode = false
+    @State private var settings = EncodeSettings()
 
     @State private var isWorking = false
     @State private var progress: Double = 0
@@ -35,6 +37,14 @@ struct SplitView: View {
                 .disabled(source == nil)
 
             segmentPreview
+
+            Toggle("Re-encode (slower, fixes mismatched formats)", isOn: $reencode)
+                .font(.callout)
+                .disabled(source == nil)
+
+            if reencode {
+                EncodeSettingsView(settings: $settings)
+            }
 
             controls
         }
@@ -151,7 +161,9 @@ struct SplitView: View {
                 url: source.url,
                 segments: segments,
                 outputDir: dir,
-                baseName: base) { p in progress = p }
+                baseName: base,
+                reencode: reencode,
+                settings: settings) { p in progress = p }
             status = "Wrote \(outputs.count) files to \(dir.lastPathComponent)"
         } catch {
             errorMessage = error.localizedDescription
