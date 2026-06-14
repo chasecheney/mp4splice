@@ -17,9 +17,25 @@ struct EncodeSettingsView: View {
                     .frame(width: 200)
                 }
                 GridRow {
+                    Text("Resolution")
+                    Picker("", selection: $settings.resolution) {
+                        ForEach(EncodeSettings.Resolution.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .labelsHidden()
+                    .frame(width: 200)
+                }
+                GridRow {
+                    Text("Frame rate")
+                    Picker("", selection: $settings.frameRate) {
+                        ForEach(EncodeSettings.FrameRate.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .labelsHidden()
+                    .frame(width: 200)
+                }
+                GridRow {
                     Text("Video bitrate")
                     HStack(spacing: 8) {
-                        Slider(value: $settings.videoBitrateMbps, in: 1...50, step: 1)
+                        Slider(value: $settings.videoBitrateMbps, in: 1...150, step: 1)
                             .frame(width: 180)
                         Text("\(Int(settings.videoBitrateMbps)) Mbps")
                             .monospacedDigit()
@@ -48,6 +64,10 @@ struct EncodeSettingsView: View {
                 }
             }
             .padding(6)
+            .onChange(of: settings.resolution) { _ in
+                // Changing resolution resets bitrate to the recommended value for it.
+                settings.videoBitrateMbps = settings.resolution.suggestedBitrateMbps
+            }
         }
     }
 }

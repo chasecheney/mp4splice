@@ -20,8 +20,17 @@ enum ReencodeEngine {
         // Normalize per-source rotation/size into one render space.
         let videoComposition = try await AVMutableVideoComposition.videoComposition(withPropertiesOf: asset)
         let renderSize = videoComposition.renderSize
-        let frameDuration = videoComposition.frameDuration
-        let fps = frameDuration.seconds > 0 ? 1.0 / frameDuration.seconds : 30.0
+
+        // Retime output to the requested frame rate (the composition resamples to this cadence).
+        videoComposition.frameDuration = settings.frameRate.frameDuration
+        let outFps = settings.frameRate.fps
+
+        // Output dimensions: target height, width derived from source aspect (kept even).
+        let aspect = renderSize.height > 0 ? renderSize.width / renderSize.height : 16.0 / 9.0
+        var outHeight = settings.resolution.targetHeight
+        var outWidth = Int((Double(outHeight) * aspect).rounded())
+        outWidth -= outWidth % 2
+        outHeight -= outHeight % 2
 
         let fullDuration = try await asset.load(.duration)
         let range = timeRange ?? CMTimeRange(start: .zero, duration: fullDuration)
@@ -61,15 +70,17 @@ enum ReencodeEngine {
 
         var compression: [String: Any] = [
             AVVideoAverageBitRateKey: Int(settings.videoBitrateMbps * 1_000_000),
-            AVVideoExpectedSourceFrameRateKey: Int(fps.rounded())
+            AVVideoExpectedSourceFrameRateKey: Int(outFps.rounded())
         ]
         if settings.codec == .h264 {
             compression[AVVideoProfileLevelKey] = AVVideoProfileLevelH264HighAutoLevel
         }
+        // VideoToolbox scales incoming frames to these dimensions during encode.
         let videoInput = AVAssetWriterInput(mediaType: .video, outputSettings: [
             AVVideoCodecKey: settings.codec.avCodec,
-            AVVideoWidthKey: Int(renderSize.width),
-            AVVideoHeightKey: Int(renderSize.height),
+            AVVideoWidthKey: outWidth,
+            AVVideoHeightKey: outHeight,
+            AVVideoScalingModeKey: AVVideoScalingModeResizeAspect,
             AVVideoCompressionPropertiesKey: compression
         ])
         videoInput.expectsMediaDataInRealTime = false

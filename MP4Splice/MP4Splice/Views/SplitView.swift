@@ -41,6 +41,9 @@ struct SplitView: View {
             Toggle("Re-encode (slower, fixes mismatched formats)", isOn: $reencode)
                 .font(.callout)
                 .disabled(source == nil)
+                .onChange(of: reencode) { on in
+                    if on, let source { settings.applyDefaults(from: source) }
+                }
 
             if reencode {
                 EncodeSettingsView(settings: $settings)

@@ -62,6 +62,9 @@ struct JoinView: View {
 
             Toggle("Re-encode (slower, fixes mismatched formats)", isOn: $reencode)
                 .font(.callout)
+                .onChange(of: reencode) { on in
+                    if on, let first = items.first { settings.applyDefaults(from: first) }
+                }
 
             if reencode {
                 EncodeSettingsView(settings: $settings)
