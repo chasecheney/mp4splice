@@ -97,10 +97,17 @@ struct EncodeSettings: Equatable {
     static let audioBitrateOptions = [128, 192, 256, 320]
     static let sampleRateOptions = [44_100, 48_000]
 
-    /// Seeds resolution/frame rate from a source file, and bitrate from that resolution.
+    /// Recommended bitrate for the current resolution and codec.
+    /// HEVC needs roughly 2/3 the bitrate of H.264 for similar quality.
+    var suggestedVideoBitrateMbps: Double {
+        let h264 = resolution.suggestedBitrateMbps
+        return codec == .hevc ? (h264 * 2.0 / 3.0).rounded() : h264
+    }
+
+    /// Seeds resolution/frame rate from a source file, and bitrate from that resolution/codec.
     mutating func applyDefaults(from item: MediaItem) {
         if item.height > 0 { resolution = .nearest(toHeight: item.height) }
         if item.frameRate > 0 { frameRate = .nearest(toFps: item.frameRate) }
-        videoBitrateMbps = resolution.suggestedBitrateMbps
+        videoBitrateMbps = suggestedVideoBitrateMbps
     }
 }
