@@ -1,10 +1,15 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct JoinView: View {
     @State private var items: [MediaItem] = []
     @State private var selection = Set<MediaItem.ID>()
     @State private var reencode = false
     @State private var settings = EncodeSettings()
+
+    @State private var autoSort = true
+    @State private var sortAscending = true
+    @State private var isDropTargeted = false
 
     @State private var isWorking = false
     @State private var progress: Double = 0
@@ -30,9 +35,21 @@ struct JoinView: View {
                     .disabled(selection.isEmpty)
                 Divider().frame(height: 16)
                 Button { move(up: true) } label: { Image(systemName: "arrow.up") }
-                    .disabled(selection.isEmpty)
+                    .disabled(selection.isEmpty || autoSort)
                 Button { move(up: false) } label: { Image(systemName: "arrow.down") }
-                    .disabled(selection.isEmpty)
+                    .disabled(selection.isEmpty || autoSort)
+                Divider().frame(height: 16)
+                Menu {
+                    Button("Name (A–Z)") { sortAscending = true; sortItems() }
+                    Button("Name (Z–A)") { sortAscending = false; sortItems() }
+                    Divider()
+                    Toggle("Auto-sort on add", isOn: $autoSort)
+                } label: {
+                    Label("Sort", systemImage: "arrow.up.arrow.down")
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .onChange(of: autoSort) { _ in if autoSort { sortItems() } }
                 Spacer()
                 if !items.isEmpty {
                     Text("\(items.count) files · \(totalDuration)")
@@ -63,9 +80,19 @@ struct JoinView: View {
         .frame(minHeight: 180)
         .overlay {
             if items.isEmpty {
-                Text("No files added")
+                Text("Drag video files here, or click Add Files")
                     .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
             }
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(Color.accentColor, lineWidth: 2)
+                .opacity(isDropTargeted ? 1 : 0)
+        }
+        .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+            handleDrop(providers)
+            return true
         }
     }
 
@@ -103,12 +130,82 @@ struct JoinView: View {
     private func addFiles() {
         let urls = Panels.pickMovies()
         guard !urls.isEmpty else { return }
-        Task {
-            for url in urls {
-                let item = await MediaItem.load(from: url)
-                items.append(item)
+        Task { await addURLs(urls) }
+    }
+
+    /// Loads new files (skipping duplicates) and appends them, sorting if auto-sort is on.
+    @MainActor
+    private func addURLs(_ urls: [URL]) async {
+        for url in urls where !items.contains(where: { $0.url == url }) {
+            let item = await MediaItem.load(from: url)
+            items.append(item)
+        }
+        if autoSort { sortItems() }
+    }
+
+    /// Finder-style natural ordering: alphabetical, but digit runs compare numerically
+    /// (so "clip2" sorts before "clip10").
+    private func sortItems() {
+        items.sort { a, b in
+            let result = a.displayName.localizedStandardCompare(b.displayName)
+            return sortAscending ? result == .orderedAscending : result == .orderedDescending
+        }
+    }
+
+    /// Suggests an output filename: the shared name across inputs + " Joined", or the
+    /// first file's name + " Joined" when the inputs don't share a meaningful prefix.
+    private func suggestedJoinName() -> String {
+        let names = items.map { $0.url.deletingPathExtension().lastPathComponent }
+        guard let first = names.first else { return "Joined.mp4" }
+
+        var stem = first
+        if names.count > 1 {
+            let cleaned = Self.trimTrailingJunk(Self.commonPrefix(of: names))
+            if cleaned.count >= 3 { stem = cleaned }   // "similar enough"
+        }
+        return "\(stem) Joined.mp4"
+    }
+
+    /// Longest common leading substring across all names.
+    private static func commonPrefix(of names: [String]) -> String {
+        guard var prefix = names.first else { return "" }
+        for name in names.dropFirst() {
+            prefix = String(zip(prefix, name).prefix { $0.0 == $0.1 }.map(\.0))
+            if prefix.isEmpty { break }
+        }
+        return prefix
+    }
+
+    /// Drops trailing separators and digits so "Vacation_0" becomes "Vacation".
+    private static func trimTrailingJunk(_ s: String) -> String {
+        let junk: Set<Character> = Set(" -_.0123456789")
+        var chars = Array(s)
+        while let last = chars.last, junk.contains(last) { chars.removeLast() }
+        return String(chars)
+    }
+
+    private func handleDrop(_ providers: [NSItemProvider]) {
+        let group = DispatchGroup()
+        let lock = NSLock()
+        var urls: [URL] = []
+        for provider in providers where provider.canLoadObject(ofClass: URL.self) {
+            group.enter()
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                if let url, Self.isMovie(url) {
+                    lock.lock(); urls.append(url); lock.unlock()
+                }
+                group.leave()
             }
         }
+        group.notify(queue: .main) {
+            guard !urls.isEmpty else { return }
+            Task { await addURLs(urls) }
+        }
+    }
+
+    private static func isMovie(_ url: URL) -> Bool {
+        guard let type = UTType(filenameExtension: url.pathExtension) else { return false }
+        return type.conforms(to: .movie) || type.conforms(to: .mpeg4Movie)
     }
 
     private func removeSelected() {
@@ -132,7 +229,7 @@ struct JoinView: View {
         errorMessage = nil
         status = ""
         guard items.count >= 2 else { return }
-        guard let output = Panels.saveMovie(defaultName: "joined.mp4") else { return }
+        guard let output = Panels.saveMovie(defaultName: suggestedJoinName()) else { return }
 
         isWorking = true
         progress = 0
