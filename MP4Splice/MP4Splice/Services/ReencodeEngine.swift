@@ -98,12 +98,14 @@ enum ReencodeEngine {
         writer.startSession(atSourceTime: range.start)
 
         async let videoDone: Void = transfer(
-            from: videoOutput, to: videoInput, on: DispatchQueue(label: "reencode.video"),
+            UncheckedBox((videoOutput as AVAssetReaderOutput, videoInput)),
+            on: DispatchQueue(label: "reencode.video"),
             startSeconds: range.start.seconds, totalSeconds: totalSeconds, progress: progress)
 
         if let audioOutput, let audioInput {
             async let audioDone: Void = transfer(
-                from: audioOutput, to: audioInput, on: DispatchQueue(label: "reencode.audio"),
+                UncheckedBox((audioOutput as AVAssetReaderOutput, audioInput)),
+                on: DispatchQueue(label: "reencode.audio"),
                 startSeconds: nil, totalSeconds: totalSeconds, progress: nil)
             _ = await (videoDone, audioDone)
         } else {
@@ -120,15 +122,24 @@ enum ReencodeEngine {
         await progress(1.0)
     }
 
+    /// Wraps non-Sendable AVFoundation objects so they can cross into the
+    /// `@Sendable` media-data callback. Access is serialized onto a single queue,
+    /// so the unchecked Sendable conformance is safe in practice.
+    private struct UncheckedBox<T>: @unchecked Sendable {
+        let value: T
+        init(_ value: T) { self.value = value }
+    }
+
     /// Pumps sample buffers from a reader output into a writer input until exhausted.
-    private static func transfer(from output: AVAssetReaderOutput,
-                                 to input: AVAssetWriterInput,
+    private static func transfer(_ box: UncheckedBox<(AVAssetReaderOutput, AVAssetWriterInput)>,
                                  on queue: DispatchQueue,
                                  startSeconds: Double?,
                                  totalSeconds: Double,
                                  progress: (@MainActor (Double) -> Void)?) async {
         await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            let input = box.value.1
             input.requestMediaDataWhenReady(on: queue) {
+                let (output, input) = box.value
                 while input.isReadyForMoreMediaData {
                     guard let buffer = output.copyNextSampleBuffer() else {
                         input.markAsFinished()
