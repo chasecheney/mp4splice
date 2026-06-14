@@ -1,9 +1,20 @@
 import SwiftUI
 
+/// Encoding options and the recommendations pane, laid out side by side.
+struct EncodeOptionsPane: View {
+    @Binding var settings: EncodeSettings
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            EncodeSettingsView(settings: $settings)
+            RecommendationsView(settings: $settings)
+        }
+    }
+}
+
 /// Encoding controls shown when the Re-encode toggle is on.
 struct EncodeSettingsView: View {
     @Binding var settings: EncodeSettings
-    @State private var showGuide = false
 
     var body: some View {
         GroupBox("Encoding options") {
@@ -38,17 +49,7 @@ struct EncodeSettingsView: View {
                     Toggle("Fill frame (crop instead of letterbox)", isOn: $settings.fillFrame)
                 }
                 GridRow {
-                    HStack(spacing: 4) {
-                        Text("Video bitrate")
-                        Button { showGuide = true } label: {
-                            Image(systemName: "info.circle")
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Show recommended bitrate guide")
-                        .popover(isPresented: $showGuide, arrowEdge: .trailing) {
-                            BitrateGuideView()
-                        }
-                    }
+                    Text("Video bitrate")
                     HStack(spacing: 8) {
                         Slider(value: $settings.videoBitrateMbps, in: 1...150, step: 1)
                             .frame(width: 180)
@@ -90,56 +91,95 @@ struct EncodeSettingsView: View {
     }
 }
 
-/// Reference table of recommended bitrates by content type, frame rate, and codec.
-struct BitrateGuideView: View {
-    private struct GuideRow: Identifiable {
-        let id = UUID()
-        let content, fps, h264, hevc: String
+/// Live recommendations for the selected resolution, codec, and frame-rate bucket.
+/// Tap a value to apply it to the bitrate slider.
+struct RecommendationsView: View {
+    @Binding var settings: EncodeSettings
+
+    private var isHEVC: Bool { settings.codec == .hevc }
+    private var highFrameRate: Bool { settings.frameRate.fps >= 48 }
+
+    private var recs: [BitrateRecommendation] {
+        BitrateRecommendation.matching(resolution: settings.resolution,
+                                       isHEVC: isHEVC,
+                                       highFrameRate: highFrameRate)
     }
 
-    private let rows: [GuideRow] = [
-        .init(content: "2D animation, cartoons, clean anime", fps: "23.976–30", h264: "3–5", hevc: "1.8–3"),
-        .init(content: "Clean digital TV, sitcoms, talk shows", fps: "23.976–30", h264: "4–6", hevc: "2.5–4"),
-        .init(content: "Live-action television drama", fps: "23.976–30", h264: "5–7", hevc: "3–4.5"),
-        .init(content: "Live-action movies", fps: "23.976–30", h264: "6–9", hevc: "3.5–5.5"),
-        .init(content: "Grainy, dark, effects-heavy or fast action", fps: "23.976–30", h264: "8–12", hevc: "5–8"),
-        .init(content: "Animation at 50/60 fps", fps: "50–60", h264: "5–8", hevc: "3–5"),
-        .init(content: "Live action at 50/60 fps", fps: "50–60", h264: "8–12", hevc: "5–8"),
-        .init(content: "Sports or very high motion", fps: "50–60", h264: "10–15", hevc: "6–10"),
-    ]
+    private var contentTypes: [String] {
+        var seen: [String] = []
+        for r in recs where !seen.contains(r.content) { seen.append(r.content) }
+        return seen
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Recommended bitrate guide")
-                .font(.headline)
-            Text("Values are for 1080p. HEVC uses roughly 2/3 the bitrate of H.264 for similar quality.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        GroupBox("Recommended bitrate (Mbps)") {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("\(settings.resolution.rawValue) · \(settings.codec.rawValue) · \(highFrameRate ? "50–60" : "24–30") fps")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-            Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 6) {
-                GridRow {
-                    Text("Content type").bold()
-                    Text("Frame rate").bold()
-                    Text("H.264").bold()
-                    Text("HEVC").bold()
-                }
-                Divider().gridCellColumns(4)
-                ForEach(rows) { row in
-                    GridRow {
-                        Text(row.content)
-                        Text("\(row.fps) fps").foregroundStyle(.secondary)
-                        Text("\(row.h264) Mbps")
-                        Text("\(row.hevc) Mbps")
+                if recs.isEmpty {
+                    Text("No recommendations for this resolution.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 6) {
+                        GridRow {
+                            Text("Content").bold()
+                            Text("Streaming").bold()
+                            Text("Local").bold()
+                        }
+                        Divider().gridCellColumns(3)
+                        ForEach(contentTypes, id: \.self) { content in
+                            GridRow {
+                                Text(content)
+                                cell(rec(content, "Streaming / VOD"))
+                                cell(rec(content, "Local library"))
+                            }
+                        }
                     }
+                    .font(.callout)
+
+                    Text("Tap a value to use it. Shown as recommended (low–high).")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                 }
             }
-            .font(.callout)
+            .padding(6)
+            .frame(width: 320)
         }
-        .padding()
-        .frame(width: 560)
+    }
+
+    private func rec(_ content: String, _ useCase: String) -> BitrateRecommendation? {
+        recs.first { $0.content == content && $0.useCase == useCase }
+    }
+
+    @ViewBuilder
+    private func cell(_ r: BitrateRecommendation?) -> some View {
+        if let r {
+            Button {
+                settings.videoBitrateMbps = r.recommended
+            } label: {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(fmt(r.recommended)).fontWeight(.medium)
+                    Text("\(fmt(r.low))–\(fmt(r.high))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .buttonStyle(.borderless)
+            .help("Set bitrate to \(fmt(r.recommended)) Mbps")
+        } else {
+            Text("—").foregroundStyle(.tertiary)
+        }
+    }
+
+    private func fmt(_ value: Double) -> String {
+        value == value.rounded() ? String(Int(value)) : String(value)
     }
 }
 
 #Preview {
-    EncodeSettingsView(settings: .constant(EncodeSettings())).padding()
+    EncodeOptionsPane(settings: .constant(EncodeSettings())).padding()
 }

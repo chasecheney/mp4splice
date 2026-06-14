@@ -21,6 +21,7 @@
 		B00000000000000000000014 /* ReencodeEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000014 /* ReencodeEngine.swift */; };
 		B00000000000000000000015 /* EncodeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000015 /* EncodeSettingsView.swift */; };
 		B00000000000000000000016 /* Job.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000016 /* Job.swift */; };
+		B00000000000000000000019 /* BitrateRecommendations.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000019 /* BitrateRecommendations.swift */; };
 		B00000000000000000000017 /* JobQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000017 /* JobQueue.swift */; };
 		B00000000000000000000018 /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000018 /* QueueView.swift */; };
 		B00000000000000000000011 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000011 /* Assets.xcassets */; };
@@ -42,6 +43,7 @@
 		F00000000000000000000014 /* ReencodeEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReencodeEngine.swift; sourceTree = "<group>"; };
 		F00000000000000000000015 /* EncodeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncodeSettingsView.swift; sourceTree = "<group>"; };
 		F00000000000000000000016 /* Job.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Job.swift; sourceTree = "<group>"; };
+		F00000000000000000000019 /* BitrateRecommendations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitrateRecommendations.swift; sourceTree = "<group>"; };
 		F00000000000000000000017 /* JobQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobQueue.swift; sourceTree = "<group>"; };
 		F00000000000000000000018 /* QueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueView.swift; sourceTree = "<group>"; };
 		F00000000000000000000012 /* MP4Splice.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MP4Splice.entitlements; sourceTree = "<group>"; };
@@ -95,6 +97,7 @@
 				F00000000000000000000003 /* MediaItem.swift */,
 				F00000000000000000000013 /* EncodeSettings.swift */,
 				F00000000000000000000016 /* Job.swift */,
+				F00000000000000000000019 /* BitrateRecommendations.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -207,6 +210,7 @@
 				B00000000000000000000014 /* ReencodeEngine.swift in Sources */,
 				B00000000000000000000015 /* EncodeSettingsView.swift in Sources */,
 				B00000000000000000000016 /* Job.swift in Sources */,
+				B00000000000000000000019 /* BitrateRecommendations.swift in Sources */,
 				B00000000000000000000017 /* JobQueue.swift in Sources */,
 				B00000000000000000000018 /* QueueView.swift in Sources */,
 			);

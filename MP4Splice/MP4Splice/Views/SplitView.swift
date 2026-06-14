@@ -48,7 +48,7 @@ struct SplitView: View {
                 }
 
             if reencode {
-                EncodeSettingsView(settings: $settings)
+                EncodeOptionsPane(settings: $settings)
             }
 
             controls
