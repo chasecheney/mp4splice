@@ -48,39 +48,36 @@ struct EncodeSettings: Equatable {
     }
 
     enum FrameRate: String, CaseIterable, Identifiable {
-        case ntsc  = "NTSC"
-        case pal   = "PAL"
-        case f24   = "24"
-        case f2997 = "29.97"
-        case f30   = "30"
-        case f60   = "60"
-        case f120  = "120"
-        case f240  = "240"
+        case ntsc = "NTSC (29.97)"
+        case pal  = "PAL (25)"
+        case f24  = "24"
+        case f30  = "30"
+        case f60  = "60"
+        case f120 = "120"
+        case f240 = "240"
         var id: String { rawValue }
 
         var fps: Double {
             switch self {
-            case .ntsc:  return 30000.0 / 1001.0   // 29.97
-            case .pal:   return 25
-            case .f24:   return 24
-            case .f2997: return 30000.0 / 1001.0   // 29.97
-            case .f30:   return 30
-            case .f60:   return 60
-            case .f120:  return 120
-            case .f240:  return 240
+            case .ntsc: return 30000.0 / 1001.0   // 29.97
+            case .pal:  return 25
+            case .f24:  return 24
+            case .f30:  return 30
+            case .f60:  return 60
+            case .f120: return 120
+            case .f240: return 240
             }
         }
 
         var frameDuration: CMTime {
             switch self {
-            case .ntsc:  return CMTime(value: 1001, timescale: 30000)
-            case .pal:   return CMTime(value: 1, timescale: 25)
-            case .f24:   return CMTime(value: 1, timescale: 24)
-            case .f2997: return CMTime(value: 1001, timescale: 30000)
-            case .f30:   return CMTime(value: 1, timescale: 30)
-            case .f60:   return CMTime(value: 1, timescale: 60)
-            case .f120:  return CMTime(value: 1, timescale: 120)
-            case .f240:  return CMTime(value: 1, timescale: 240)
+            case .ntsc: return CMTime(value: 1001, timescale: 30000)
+            case .pal:  return CMTime(value: 1, timescale: 25)
+            case .f24:  return CMTime(value: 1, timescale: 24)
+            case .f30:  return CMTime(value: 1, timescale: 30)
+            case .f60:  return CMTime(value: 1, timescale: 60)
+            case .f120: return CMTime(value: 1, timescale: 120)
+            case .f240: return CMTime(value: 1, timescale: 240)
             }
         }
 
