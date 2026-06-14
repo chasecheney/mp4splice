@@ -58,6 +58,8 @@ struct JoinView: View {
                 }
             }
 
+            infoBox
+
             Toggle("Re-encode (slower, fixes mismatched formats)", isOn: $reencode)
                 .font(.callout)
 
@@ -93,6 +95,36 @@ struct JoinView: View {
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
             handleDrop(providers)
             return true
+        }
+    }
+
+    private var selectedItem: MediaItem? {
+        guard selection.count == 1, let id = selection.first else { return nil }
+        return items.first { $0.id == id }
+    }
+
+    @ViewBuilder
+    private var infoBox: some View {
+        if let item = selectedItem {
+            GroupBox("File info — \(item.displayName)") {
+                Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 4) {
+                    infoRow("Resolution", item.resolutionString)
+                    infoRow("Frame rate", item.frameRateString)
+                    infoRow("Video codec", item.videoCodecString)
+                    infoRow("Audio codec", item.audioCodecString)
+                    infoRow("Audio bitrate", item.audioBitrateString)
+                }
+                .font(.callout)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(6)
+            }
+        }
+    }
+
+    private func infoRow(_ label: String, _ value: String) -> some View {
+        GridRow {
+            Text(label).foregroundStyle(.secondary)
+            Text(value).monospacedDigit()
         }
     }
 
