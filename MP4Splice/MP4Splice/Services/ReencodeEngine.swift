@@ -8,6 +8,7 @@ import AVFoundation
 enum ReencodeEngine {
 
     static func encode(asset: AVAsset,
+                       videoComposition providedComposition: AVMutableVideoComposition? = nil,
                        timeRange: CMTimeRange?,
                        to outputURL: URL,
                        settings: EncodeSettings,
@@ -17,20 +18,30 @@ enum ReencodeEngine {
         guard !videoTracks.isEmpty else { throw VideoError.noVideoTrack(outputURL) }
         let audioTracks = try await asset.loadTracks(withMediaType: .audio)
 
-        // Normalize per-source rotation/size into one render space.
-        let videoComposition = try await AVMutableVideoComposition.videoComposition(withPropertiesOf: asset)
-        let renderSize = videoComposition.renderSize
+        let videoComposition: AVMutableVideoComposition
+        let outWidth: Int
+        let outHeight: Int
 
-        // Retime output to the requested frame rate (the composition resamples to this cadence).
-        videoComposition.frameDuration = settings.frameRate.frameDuration
+        if let providedComposition {
+            // Caller already built a composition sized to the desired output (join path).
+            videoComposition = providedComposition
+            outWidth = Int(providedComposition.renderSize.width)
+            outHeight = Int(providedComposition.renderSize.height)
+        } else {
+            // Single-source path (split): normalize rotation/size, then scale via the writer.
+            let vc = try await AVMutableVideoComposition.videoComposition(withPropertiesOf: asset)
+            vc.frameDuration = settings.frameRate.frameDuration
+            let renderSize = vc.renderSize
+            let aspect = renderSize.height > 0 ? renderSize.width / renderSize.height : 16.0 / 9.0
+            var h = settings.resolution.targetHeight
+            var w = Int((Double(h) * aspect).rounded())
+            w -= w % 2
+            h -= h % 2
+            videoComposition = vc
+            outWidth = w
+            outHeight = h
+        }
         let outFps = settings.frameRate.fps
-
-        // Output dimensions: target height, width derived from source aspect (kept even).
-        let aspect = renderSize.height > 0 ? renderSize.width / renderSize.height : 16.0 / 9.0
-        var outHeight = settings.resolution.targetHeight
-        var outWidth = Int((Double(outHeight) * aspect).rounded())
-        outWidth -= outWidth % 2
-        outHeight -= outHeight % 2
 
         let fullDuration = try await asset.load(.duration)
         let range = timeRange ?? CMTimeRange(start: .zero, duration: fullDuration)
