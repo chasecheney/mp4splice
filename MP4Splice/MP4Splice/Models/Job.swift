@@ -13,15 +13,17 @@ final class Job: ObservableObject, Identifiable {
     let id = UUID()
     let name: String
     let kind: String          // "Join" or "Split"
+    let outputs: [URL]        // files to delete if the job is cancelled/discarded
     let operation: Operation
 
     @Published var status: JobStatus = .pending
     @Published var progress: Double = 0
     @Published var error: String?
 
-    init(name: String, kind: String, operation: @escaping Operation) {
+    init(name: String, kind: String, outputs: [URL], operation: @escaping Operation) {
         self.name = name
         self.kind = kind
+        self.outputs = outputs
         self.operation = operation
     }
 

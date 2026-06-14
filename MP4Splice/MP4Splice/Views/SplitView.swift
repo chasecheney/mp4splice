@@ -21,6 +21,8 @@ struct SplitView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            QueueIndicator()
+
             Text("Split one MP4 into multiple files.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -159,7 +161,12 @@ struct SplitView: View {
         let useReencode = reencode
         let settingsSnapshot = settings
 
-        let job = Job(name: "\(base) (\(segmentsSnapshot.count) parts)", kind: "Split") { progress in
+        // Deterministic output names so they can be cleaned up on cancel.
+        let outputURLs = (1...segmentsSnapshot.count).map {
+            dir.appendingPathComponent(String(format: "%@-%02d.mp4", base, $0))
+        }
+
+        let job = Job(name: "\(base) (\(segmentsSnapshot.count) parts)", kind: "Split", outputs: outputURLs) { progress in
             _ = try await VideoSplitter.split(
                 url: sourceURL,
                 segments: segmentsSnapshot,

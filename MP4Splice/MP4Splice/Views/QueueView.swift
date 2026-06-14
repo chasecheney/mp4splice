@@ -23,7 +23,7 @@ struct QueueView: View {
             } else {
                 List {
                     ForEach(queue.jobs) { job in
-                        JobRow(job: job) { queue.remove(job) }
+                        JobRow(job: job) { queue.cancelOrRemove(job) }
                     }
                 }
                 .listStyle(.inset(alternatesRowBackgrounds: true))
@@ -34,7 +34,7 @@ struct QueueView: View {
 
 private struct JobRow: View {
     @ObservedObject var job: Job
-    var onRemove: () -> Void
+    var onCancelOrRemove: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
@@ -58,13 +58,19 @@ private struct JobRow: View {
                 Text("\(Int(job.progress * 100))%")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
-            } else if job.status != .completed {
-                Button { onRemove() } label: {
+                Button(role: .destructive) { onCancelOrRemove() } label: {
+                    Image(systemName: "stop.circle.fill")
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.red)
+                .help("Cancel job and delete its output")
+            } else {
+                Button { onCancelOrRemove() } label: {
                     Image(systemName: "xmark.circle.fill")
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(.secondary)
-                .help("Remove from queue")
+                .help(job.status == .completed ? "Remove from queue" : "Remove and delete output")
             }
         }
         .padding(.vertical, 2)
@@ -83,6 +89,31 @@ private struct JobRow: View {
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red)
         case .cancelled:
             Image(systemName: "minus.circle").foregroundStyle(.secondary)
+        }
+    }
+}
+
+/// Compact banner shown on the Join/Split panes while jobs are active.
+struct QueueIndicator: View {
+    @EnvironmentObject var queue: JobQueue
+
+    var body: some View {
+        if queue.isActive {
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                if let running = queue.runningJob {
+                    Text("Processing “\(running.name)” — \(Int(running.progress * 100))%")
+                        .font(.caption)
+                }
+                if queue.pendingCount > 0 {
+                    Text("· \(queue.pendingCount) waiting")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(8)
+            .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
         }
     }
 }

@@ -5,25 +5,52 @@ import Foundation
 @MainActor
 final class JobQueue: ObservableObject {
     @Published private(set) var jobs: [Job] = []
-    private var isRunning = false
 
-    var hasFinished: Bool { jobs.contains { $0.isFinished } }
+    private var isRunning = false
+    private var currentTask: Task<JobOutcome, Never>?
+    private var currentJobID: Job.ID?
+
+    private enum JobOutcome {
+        case completed
+        case cancelled
+        case failed(String)
+    }
+
+    // MARK: - Derived state for indicators
+
+    var runningJob: Job? { jobs.first { $0.status == .running } }
+    var pendingCount: Int { jobs.filter { $0.status == .pending }.count }
     var activeCount: Int { jobs.filter { $0.status == .pending || $0.status == .running }.count }
+    var isActive: Bool { activeCount > 0 }
+    var hasFinished: Bool { jobs.contains { $0.isFinished } }
+
+    // MARK: - Mutations
 
     func add(_ job: Job) {
         jobs.append(job)
         Task { await processNext() }
     }
 
-    /// Removes a job that isn't currently running.
-    func remove(_ job: Job) {
-        guard job.status != .running else { return }
-        jobs.removeAll { $0.id == job.id }
+    /// Cancels (if running) or removes a job, deleting its output files unless it
+    /// completed successfully.
+    func cancelOrRemove(_ job: Job) {
+        switch job.status {
+        case .running:
+            currentTask?.cancel()           // outputs deleted once the task unwinds
+            jobs.removeAll { $0.id == job.id }
+        case .pending, .failed, .cancelled:
+            deleteOutputs(of: job)
+            jobs.removeAll { $0.id == job.id }
+        case .completed:
+            jobs.removeAll { $0.id == job.id }   // keep the finished file
+        }
     }
 
     func clearFinished() {
         jobs.removeAll { $0.isFinished }
     }
+
+    // MARK: - Processing
 
     private func processNext() async {
         guard !isRunning else { return }
@@ -32,16 +59,46 @@ final class JobQueue: ObservableObject {
         isRunning = true
         job.status = .running
         job.progress = 0
-        do {
-            try await job.operation { progress in job.progress = progress }
+
+        let task = Task { () -> JobOutcome in
+            do {
+                try await job.operation { progress in job.progress = progress }
+                return .completed
+            } catch is CancellationError {
+                return .cancelled
+            } catch let error as VideoError {
+                if case .cancelled = error { return .cancelled }
+                return .failed(error.localizedDescription)
+            } catch {
+                return Task.isCancelled ? .cancelled : .failed(error.localizedDescription)
+            }
+        }
+        currentTask = task
+        currentJobID = job.id
+        let outcome = await task.value
+        currentTask = nil
+        currentJobID = nil
+
+        switch outcome {
+        case .completed:
             job.progress = 1
             job.status = .completed
-        } catch {
-            job.error = error.localizedDescription
+        case .cancelled:
+            job.status = .cancelled
+            deleteOutputs(of: job)
+        case .failed(let message):
+            job.error = message
             job.status = .failed
+            deleteOutputs(of: job)
         }
-        isRunning = false
 
+        isRunning = false
         await processNext()
+    }
+
+    private func deleteOutputs(of job: Job) {
+        for url in job.outputs {
+            try? FileManager.default.removeItem(at: url)
+        }
     }
 }

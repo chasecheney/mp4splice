@@ -119,21 +119,32 @@ enum ReencodeEngine {
         }
         writer.startSession(atSourceTime: range.start)
 
-        async let videoDone: Void = transfer(
-            UncheckedBox((videoOutput as AVAssetReaderOutput, videoInput)),
-            on: DispatchQueue(label: "reencode.video"),
-            startSeconds: range.start.seconds, totalSeconds: totalSeconds, progress: progress)
+        // Cancellation stops the reader/writer, which ends the pump loops promptly.
+        let readerBox = UncheckedBox(reader)
+        let writerBox = UncheckedBox(writer)
+        await withTaskCancellationHandler {
+            async let videoDone: Void = transfer(
+                UncheckedBox((videoOutput as AVAssetReaderOutput, videoInput)),
+                on: DispatchQueue(label: "reencode.video"),
+                startSeconds: range.start.seconds, totalSeconds: totalSeconds, progress: progress)
 
-        if let audioOutput, let audioInput {
-            async let audioDone: Void = transfer(
-                UncheckedBox((audioOutput as AVAssetReaderOutput, audioInput)),
-                on: DispatchQueue(label: "reencode.audio"),
-                startSeconds: nil, totalSeconds: totalSeconds, progress: nil)
-            _ = await (videoDone, audioDone)
-        } else {
-            _ = await videoDone
+            if let audioOutput, let audioInput {
+                async let audioDone: Void = transfer(
+                    UncheckedBox((audioOutput as AVAssetReaderOutput, audioInput)),
+                    on: DispatchQueue(label: "reencode.audio"),
+                    startSeconds: nil, totalSeconds: totalSeconds, progress: nil)
+                _ = await (videoDone, audioDone)
+            } else {
+                _ = await videoDone
+            }
+        } onCancel: {
+            readerBox.value.cancelReading()
+            writerBox.value.cancelWriting()
         }
 
+        if Task.isCancelled || reader.status == .cancelled {
+            throw VideoError.cancelled
+        }
         if reader.status == .failed {
             throw VideoError.exportFailed(reader.error?.localizedDescription ?? "read error")
         }

@@ -23,6 +23,8 @@ struct JoinView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            QueueIndicator()
+
             Text("Join multiple MP4 files into one. Files are combined top to bottom.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -335,7 +337,7 @@ struct JoinView: View {
         let useReencode = reencode
         let settingsSnapshot = settings
 
-        let job = Job(name: output.lastPathComponent, kind: "Join") { progress in
+        let job = Job(name: output.lastPathComponent, kind: "Join", outputs: [output]) { progress in
             try await VideoJoiner.join(
                 urls: urls,
                 to: output,
