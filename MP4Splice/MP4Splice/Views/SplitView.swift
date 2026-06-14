@@ -7,6 +7,8 @@ struct SplitView: View {
         var id: String { rawValue }
     }
 
+    @EnvironmentObject var queue: JobQueue
+
     @State private var source: MediaItem?
     @State private var mode: Mode = .equalParts
     @State private var partCount = 2
@@ -14,8 +16,6 @@ struct SplitView: View {
     @State private var reencode = false
     @State private var settings = EncodeSettings()
 
-    @State private var isWorking = false
-    @State private var progress: Double = 0
     @State private var status = ""
     @State private var errorMessage: String?
 
@@ -121,9 +121,7 @@ struct SplitView: View {
 
     private var controls: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if isWorking {
-                ProgressView(value: progress) { Text(status).font(.caption) }
-            } else if let errorMessage {
+            if let errorMessage {
                 Label(errorMessage, systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.red).font(.caption)
             } else if !status.isEmpty {
@@ -133,11 +131,11 @@ struct SplitView: View {
 
             HStack {
                 Spacer()
-                Button { Task { await runSplit() } } label: {
-                    Label("Split…", systemImage: "scissors")
+                Button { enqueueSplit() } label: {
+                    Label("Add to Queue", systemImage: "plus.circle")
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(source == nil || segments.isEmpty || isWorking)
+                .disabled(source == nil || segments.isEmpty)
             }
         }
     }
@@ -149,32 +147,33 @@ struct SplitView: View {
         Task { source = await MediaItem.load(from: url) }
     }
 
-    private func runSplit() async {
+    private func enqueueSplit() {
         errorMessage = nil
         status = ""
         guard let source else { return }
         guard let dir = Panels.pickDirectory() else { return }
 
         let base = source.url.deletingPathExtension().lastPathComponent
-        isWorking = true
-        progress = 0
-        status = "Splitting…"
-        do {
-            let outputs = try await VideoSplitter.split(
-                url: source.url,
-                segments: segments,
+        let sourceURL = source.url
+        let segmentsSnapshot = segments
+        let useReencode = reencode
+        let settingsSnapshot = settings
+
+        let job = Job(name: "\(base) (\(segmentsSnapshot.count) parts)", kind: "Split") { progress in
+            _ = try await VideoSplitter.split(
+                url: sourceURL,
+                segments: segmentsSnapshot,
                 outputDir: dir,
                 baseName: base,
-                reencode: reencode,
-                settings: settings) { p in progress = p }
-            status = "Wrote \(outputs.count) files to \(dir.lastPathComponent)"
-        } catch {
-            errorMessage = error.localizedDescription
+                reencode: useReencode,
+                settings: settingsSnapshot,
+                progress: progress)
         }
-        isWorking = false
+        queue.add(job)
+        status = "Added “\(base)” to the queue"
     }
 }
 
 #Preview {
-    SplitView().padding()
+    SplitView().environmentObject(JobQueue()).padding()
 }

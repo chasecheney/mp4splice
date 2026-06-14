@@ -2,6 +2,8 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct JoinView: View {
+    @EnvironmentObject var queue: JobQueue
+
     @State private var items: [MediaItem] = []
     @State private var selection = Set<MediaItem.ID>()
     @State private var reencode = false
@@ -11,8 +13,6 @@ struct JoinView: View {
     @State private var sortAscending = true
     @State private var isDropTargeted = false
 
-    @State private var isWorking = false
-    @State private var progress: Double = 0
     @State private var status: String = ""
     @State private var errorMessage: String?
 
@@ -133,11 +133,7 @@ struct JoinView: View {
 
     private var controls: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if isWorking {
-                ProgressView(value: progress) {
-                    Text(status).font(.caption)
-                }
-            } else if let errorMessage {
+            if let errorMessage {
                 Label(errorMessage, systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.red)
                     .font(.caption)
@@ -150,12 +146,12 @@ struct JoinView: View {
             HStack {
                 Spacer()
                 Button {
-                    Task { await runJoin() }
+                    enqueueJoin()
                 } label: {
-                    Label("Join…", systemImage: "square.and.arrow.down")
+                    Label("Add to Queue", systemImage: "plus.circle")
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(items.count < 2 || isWorking)
+                .disabled(items.count < 2)
             }
         }
     }
@@ -260,29 +256,31 @@ struct JoinView: View {
         }
     }
 
-    private func runJoin() async {
+    /// Snapshots the current inputs and settings into a queued job, then leaves the
+    /// pane ready for the next set of files.
+    private func enqueueJoin() {
         errorMessage = nil
         status = ""
         guard items.count >= 2 else { return }
         guard let output = Panels.saveMovie(defaultName: suggestedJoinName()) else { return }
 
-        isWorking = true
-        progress = 0
-        status = "Joining…"
-        do {
+        let urls = items.map(\.url)
+        let useReencode = reencode
+        let settingsSnapshot = settings
+
+        let job = Job(name: output.lastPathComponent, kind: "Join") { progress in
             try await VideoJoiner.join(
-                urls: items.map(\.url),
+                urls: urls,
                 to: output,
-                reencode: reencode,
-                settings: settings) { p in progress = p }
-            status = "Saved to \(output.lastPathComponent)"
-        } catch {
-            errorMessage = error.localizedDescription
+                reencode: useReencode,
+                settings: settingsSnapshot,
+                progress: progress)
         }
-        isWorking = false
+        queue.add(job)
+        status = "Added “\(output.lastPathComponent)” to the queue"
     }
 }
 
 #Preview {
-    JoinView().padding()
+    JoinView().environmentObject(JobQueue()).padding()
 }
