@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct QueueView: View {
     @EnvironmentObject var queue: JobQueue
@@ -65,6 +66,14 @@ private struct JobRow: View {
                 .foregroundStyle(.red)
                 .help("Cancel job and delete its output")
             } else {
+                if job.status == .completed {
+                    Button { revealInFinder() } label: {
+                        Image(systemName: "magnifyingglass.circle.fill")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Reveal in Finder")
+                }
                 Button { onCancelOrRemove() } label: {
                     Image(systemName: "xmark.circle.fill")
                 }
@@ -74,6 +83,13 @@ private struct JobRow: View {
             }
         }
         .padding(.vertical, 2)
+    }
+
+    /// Selects the job's output file(s) in Finder.
+    private func revealInFinder() {
+        let urls = job.outputs.filter { FileManager.default.fileExists(atPath: $0.path) }
+        guard !urls.isEmpty else { return }
+        NSWorkspace.shared.activateFileViewerSelecting(urls)
     }
 
     @ViewBuilder
