@@ -1,0 +1,29 @@
+# XcodeGen spec — optional. If the .xcodeproj ever gets out of sync, regenerate with:
+#   brew install xcodegen && xcodegen generate
+name: MP4Splice
+options:
+  bundleIdPrefix: org.mp4splice
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    MARKETING_VERSION: "4.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+targets:
+  MP4Splice:
+    type: application
+    platform: macOS
+    sources:
+      - MP4Splice
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.mp4splice.MP4Splice
+        CODE_SIGN_ENTITLEMENTS: MP4Splice/MP4Splice.entitlements
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_HARDENED_RUNTIME: YES
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.video
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
