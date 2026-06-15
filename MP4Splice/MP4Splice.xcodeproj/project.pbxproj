@@ -17,14 +17,14 @@
 		B00000000000000000000008 /* Panels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000008 /* Panels.swift */; };
 		B00000000000000000000009 /* JoinView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000009 /* JoinView.swift */; };
 		B00000000000000000000010 /* SplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000010 /* SplitView.swift */; };
+		B00000000000000000000011 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000011 /* Assets.xcassets */; };
 		B00000000000000000000013 /* EncodeSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000013 /* EncodeSettings.swift */; };
 		B00000000000000000000014 /* ReencodeEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000014 /* ReencodeEngine.swift */; };
 		B00000000000000000000015 /* EncodeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000015 /* EncodeSettingsView.swift */; };
 		B00000000000000000000016 /* Job.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000016 /* Job.swift */; };
-		B00000000000000000000019 /* BitrateRecommendations.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000019 /* BitrateRecommendations.swift */; };
 		B00000000000000000000017 /* JobQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000017 /* JobQueue.swift */; };
 		B00000000000000000000018 /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000018 /* QueueView.swift */; };
-		B00000000000000000000011 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000011 /* Assets.xcassets */; };
+		B00000000000000000000019 /* BitrateRecommendations.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000019 /* BitrateRecommendations.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -39,14 +39,14 @@
 		F00000000000000000000009 /* JoinView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoinView.swift; sourceTree = "<group>"; };
 		F00000000000000000000010 /* SplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitView.swift; sourceTree = "<group>"; };
 		F00000000000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F00000000000000000000012 /* MP4Splice.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MP4Splice.entitlements; sourceTree = "<group>"; };
 		F00000000000000000000013 /* EncodeSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncodeSettings.swift; sourceTree = "<group>"; };
 		F00000000000000000000014 /* ReencodeEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReencodeEngine.swift; sourceTree = "<group>"; };
 		F00000000000000000000015 /* EncodeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncodeSettingsView.swift; sourceTree = "<group>"; };
 		F00000000000000000000016 /* Job.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Job.swift; sourceTree = "<group>"; };
-		F00000000000000000000019 /* BitrateRecommendations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitrateRecommendations.swift; sourceTree = "<group>"; };
 		F00000000000000000000017 /* JobQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobQueue.swift; sourceTree = "<group>"; };
 		F00000000000000000000018 /* QueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueView.swift; sourceTree = "<group>"; };
-		F00000000000000000000012 /* MP4Splice.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MP4Splice.entitlements; sourceTree = "<group>"; };
+		F00000000000000000000019 /* BitrateRecommendations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitrateRecommendations.swift; sourceTree = "<group>"; };
 		F000000000000000000000FF /* MP4Splice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MP4Splice.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -360,8 +360,8 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 4.0;
-				PRODUCT_BUNDLE_IDENTIFIER = org.mp4splice.MP4Splice;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.chasecheney.MP4Splice;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -387,8 +387,8 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 4.0;
-				PRODUCT_BUNDLE_IDENTIFIER = org.mp4splice.MP4Splice;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.chasecheney.MP4Splice;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
