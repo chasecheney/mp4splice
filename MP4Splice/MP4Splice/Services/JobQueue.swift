@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 /// Shared, sequential job processor. Jobs run one at a time in the background so the
 /// Join/Split panes stay interactive while work is in progress.
@@ -9,6 +10,9 @@ final class JobQueue: ObservableObject {
     private var isRunning = false
     private var currentTask: Task<JobOutcome, Never>?
     private var currentJobID: Job.ID?
+    // Forwards each job's own @Published changes (status/progress) up to this queue
+    // so views observing the queue (indicator, tab badge) refresh live.
+    private var observers: [Job.ID: AnyCancellable] = [:]
 
     private enum JobOutcome {
         case completed
@@ -27,6 +31,9 @@ final class JobQueue: ObservableObject {
     // MARK: - Mutations
 
     func add(_ job: Job) {
+        observers[job.id] = job.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
         jobs.append(job)
         Task { await processNext() }
     }
@@ -37,17 +44,23 @@ final class JobQueue: ObservableObject {
         switch job.status {
         case .running:
             currentTask?.cancel()           // outputs deleted once the task unwinds
-            jobs.removeAll { $0.id == job.id }
+            forget(job)
         case .pending, .failed, .cancelled:
             deleteOutputs(of: job)
-            jobs.removeAll { $0.id == job.id }
+            forget(job)
         case .completed:
-            jobs.removeAll { $0.id == job.id }   // keep the finished file
+            forget(job)                     // keep the finished file
         }
     }
 
     func clearFinished() {
+        for job in jobs where job.isFinished { observers[job.id] = nil }
         jobs.removeAll { $0.isFinished }
+    }
+
+    private func forget(_ job: Job) {
+        observers[job.id] = nil
+        jobs.removeAll { $0.id == job.id }
     }
 
     // MARK: - Processing
