@@ -25,6 +25,7 @@
 		B00000000000000000000017 /* JobQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000017 /* JobQueue.swift */; };
 		B00000000000000000000018 /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000018 /* QueueView.swift */; };
 		B00000000000000000000019 /* BitrateRecommendations.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000019 /* BitrateRecommendations.swift */; };
+		B00000000000000000000020 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000020 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,6 +48,7 @@
 		F00000000000000000000017 /* JobQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobQueue.swift; sourceTree = "<group>"; };
 		F00000000000000000000018 /* QueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueView.swift; sourceTree = "<group>"; };
 		F00000000000000000000019 /* BitrateRecommendations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitrateRecommendations.swift; sourceTree = "<group>"; };
+		F00000000000000000000020 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		F000000000000000000000FF /* MP4Splice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MP4Splice.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -79,6 +81,7 @@
 				G00000000000000000000006 /* Views */,
 				F00000000000000000000011 /* Assets.xcassets */,
 				F00000000000000000000012 /* MP4Splice.entitlements */,
+				F00000000000000000000020 /* PrivacyInfo.xcprivacy */,
 			);
 			path = MP4Splice;
 			sourceTree = "<group>";
@@ -186,6 +189,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B00000000000000000000011 /* Assets.xcassets in Resources */,
+				B00000000000000000000020 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -354,8 +358,9 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Tom Cheney. All rights reserved.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -381,8 +386,9 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Tom Cheney. All rights reserved.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
