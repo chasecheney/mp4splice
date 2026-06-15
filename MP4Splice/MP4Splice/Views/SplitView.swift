@@ -6,6 +6,7 @@ struct SplitView: View {
     enum Mode: String, CaseIterable, Identifiable {
         case equalParts = "Equal parts"
         case splitPoints = "Split points"
+        case extract = "Extract range"
         var id: String { rawValue }
     }
 
@@ -17,6 +18,8 @@ struct SplitView: View {
     @State private var mode: Mode = .equalParts
     @State private var partCount = 2
     @State private var splitPointText = ""
+    @State private var startTC = ""
+    @State private var endTC = ""
     @State private var reencode = false
     @State private var settings = EncodeSettings()
 
@@ -119,6 +122,25 @@ struct SplitView: View {
                 TextField("30, 90, 150", text: $splitPointText)
                     .textFieldStyle(.roundedBorder)
             }
+        case .extract:
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Extract a single clip. Enter times as H:MM:SS, MM:SS, or seconds.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                timecodeRow(label: "Start", text: $startTC, placeholder: "0:00")
+                timecodeRow(label: "End", text: $endTC, placeholder: "0:10")
+            }
+        }
+    }
+
+    private func timecodeRow(label: String, text: Binding<String>, placeholder: String) -> some View {
+        HStack(spacing: 8) {
+            Text(label).frame(width: 42, alignment: .leading)
+            TextField(placeholder, text: text)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 120)
+            Button("Use playhead") { text.wrappedValue = currentPlayheadTimecode() }
+                .disabled(player == nil)
         }
     }
 
@@ -133,7 +155,38 @@ struct SplitView: View {
                 .split(separator: ",")
                 .compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
             return VideoSplitter.segments(fromSplitPoints: points, totalSeconds: total)
+        case .extract:
+            guard let start = Self.parseTimecode(startTC),
+                  let rawEnd = Self.parseTimecode(endTC),
+                  start >= 0, rawEnd > start else { return [] }
+            let end = total > 0 ? min(rawEnd, total) : rawEnd
+            guard end > start else { return [] }
+            return [SplitSegment(start: start, end: end)]
         }
+    }
+
+    /// Parses "H:MM:SS", "MM:SS", or plain (decimal) seconds into seconds.
+    static func parseTimecode(_ string: String) -> Double? {
+        let trimmed = string.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return nil }
+        var total = 0.0
+        for part in trimmed.split(separator: ":") {
+            guard let value = Double(part) else { return nil }
+            total = total * 60 + value
+        }
+        return total
+    }
+
+    private func currentPlayheadTimecode() -> String {
+        guard let player else { return "" }
+        let seconds = player.currentTime().seconds
+        guard seconds.isFinite, seconds >= 0 else { return "" }
+        let whole = Int(seconds)
+        let cc = min(99, Int((seconds - Double(whole)) * 100))
+        let h = whole / 3600, m = (whole % 3600) / 60, s = whole % 60
+        return h > 0
+            ? String(format: "%d:%02d:%02d.%02d", h, m, s, cc)
+            : String(format: "%d:%02d.%02d", m, s, cc)
     }
 
     @ViewBuilder
