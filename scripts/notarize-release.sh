@@ -32,7 +32,15 @@ DMG="$APP_NAME.dmg"
 cd "$(dirname "$0")/.."
 
 echo "==> Cleaning"
-rm -rf "$BUILD" "$DMG"
+# Resilient cleanup: clear immutable flags, then move-aside any busy dir
+# (Spotlight/DerivedData can re-create files mid-delete, causing "Directory not empty").
+chflags -R nouchg "$BUILD" 2>/dev/null || true
+rm -rf "$BUILD" "$DMG" 2>/dev/null || true
+if [ -e "$BUILD" ]; then
+    mv "$BUILD" "${BUILD}.trash.$$" 2>/dev/null || true
+    rm -rf "${BUILD}.trash.$$" 2>/dev/null || true
+fi
+mkdir -p "$BUILD"
 
 echo "==> Archiving (Release)"
 xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration Release \
