@@ -77,4 +77,5 @@ the hardware media engine automatically, so re-encoding is hardware-accelerated.
 - The app icon slots are empty placeholders — drop real PNGs into `Assets.xcassets/AppIcon.appiconset`.
 - Passthrough join requires inputs with compatible formats; otherwise enable Re-encode.
 - `project.yml` is an optional XcodeGen spec to regenerate the project if it drifts.
-- To distribute outside your machine, enable Developer ID signing and notarization.
+- For distribution, run `scripts/notarize-release.sh` to produce a signed, notarized,
+  stapled `MP4Splice.dmg` (Developer ID, team JTU6ZV6ZZF, notary profile MP4TOOLS_NOTARY).

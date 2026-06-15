@@ -6,6 +6,12 @@ binaries and no legacy Carbon dependencies.
 
 This is a clean-room rewrite of the old wxWidgets/ffmpeg C++ "MP4Tools" app.
 
+## Download
+
+Grab the latest signed, notarized `MP4Splice.dmg` from the
+[Releases page](https://github.com/chasecheney/mp4splice/releases). Open the disk image and
+drag MP4Splice into Applications — it launches with no Gatekeeper warning.
+
 ## Features
 
 - **Join** — add multiple MP4 files, reorder them, and combine into a single file.

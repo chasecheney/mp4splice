@@ -36,5 +36,6 @@ A clean-room successor to the old wxWidgets/ffmpeg MP4Tools.
 - Apple Silicon or Intel Mac
 
 ## Install
-Download `MP4Splice.zip`, unzip, and move `MP4Splice.app` to Applications. This build is not
-notarized, so on first launch right-click the app → **Open** to bypass Gatekeeper.
+Download `MP4Splice.dmg`, open it, and drag **MP4Splice** into the Applications folder.
+The app is signed with a Developer ID and notarized by Apple, so it launches normally with
+no Gatekeeper warning. Then eject the disk image.
