@@ -27,44 +27,49 @@ struct SplitView: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: 12) {
             QueueIndicator()
 
-            Text("Split one video into multiple files. Drag a file in, or use Choose File.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Split one video into multiple files. Drag a file in, or use Choose File.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
 
-            playerArea
+                    playerArea
 
-            sourceRow
+                    sourceRow
 
-            Picker("Mode", selection: $mode) {
-                ForEach(Mode.allCases) { Text($0.rawValue).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .disabled(source == nil)
+                    Picker("Mode", selection: $mode) {
+                        ForEach(Mode.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .disabled(source == nil)
 
-            modeControls
-                .disabled(source == nil)
+                    modeControls
+                        .disabled(source == nil)
 
-            segmentPreview
+                    segmentPreview
 
-            Toggle("Re-encode (slower, fixes mismatched formats)", isOn: $reencode)
-                .font(.callout)
-                .disabled(source == nil)
-                .onChange(of: reencode) { on in
-                    if on, let source { settings.applyDefaults(from: source) }
+                    Toggle("Re-encode (slower, fixes mismatched formats)", isOn: $reencode)
+                        .font(.callout)
+                        .disabled(source == nil)
+                        .onChange(of: reencode) { on in
+                            if on, let source { settings.applyDefaults(from: source) }
+                        }
+
+                    if reencode {
+                        EncodeOptionsPane(settings: $settings)
+                    }
                 }
-
-            if reencode {
-                EncodeOptionsPane(settings: $settings)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(maxHeight: .infinity)
+
+            Divider()
 
             controls
-
-            Spacer(minLength: 0)
         }
-        .frame(maxHeight: .infinity, alignment: .top)
     }
 
     private var playerArea: some View {

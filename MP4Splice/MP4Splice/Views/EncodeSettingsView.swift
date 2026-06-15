@@ -5,9 +5,16 @@ struct EncodeOptionsPane: View {
     @Binding var settings: EncodeSettings
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            EncodeSettingsView(settings: $settings)
-            RecommendationsView(settings: $settings)
+        // Side by side when there's room; stack vertically when the window is narrow.
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 12) {
+                EncodeSettingsView(settings: $settings)
+                RecommendationsView(settings: $settings)
+            }
+            VStack(alignment: .leading, spacing: 12) {
+                EncodeSettingsView(settings: $settings)
+                RecommendationsView(settings: $settings)
+            }
         }
     }
 }

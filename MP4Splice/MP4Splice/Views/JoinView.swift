@@ -22,14 +22,16 @@ struct JoinView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: 12) {
             QueueIndicator()
 
-            Text("Join multiple MP4 files into one. Files are combined top to bottom.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Join multiple MP4 files into one. Files are combined top to bottom.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
 
-            fileTable
+                    fileTable
 
             HStack {
                 Button { addFiles() } label: { Label("Add Files…", systemImage: "plus") }
@@ -68,9 +70,15 @@ struct JoinView: View {
                     if on, let first = items.first { settings.applyDefaults(from: first) }
                 }
 
-            if reencode {
-                EncodeOptionsPane(settings: $settings)
+                    if reencode {
+                        EncodeOptionsPane(settings: $settings)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(maxHeight: .infinity)
+
+            Divider()
 
             controls
         }
@@ -84,7 +92,7 @@ struct JoinView: View {
             TableColumn("Size") { Text($0.sizeString) }
                 .width(90)
         }
-        .frame(minHeight: 180)
+        .frame(height: 240)
         .overlay {
             if items.isEmpty {
                 Text("Drag video files here, or click Add Files")
