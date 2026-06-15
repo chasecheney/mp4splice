@@ -49,6 +49,5 @@ See [`MP4Splice/README.md`](MP4Splice/README.md) for project internals and archi
 
 ## License
 
-No license has been set yet. Until one is added, all rights are reserved. Note that the
-original MP4Tools was GPL-licensed; this rewrite shares no code with it, so you are free to
-choose any license.
+Released under the [MIT License](LICENSE), © 2026 ChaseCheney LLC. This is a clean-room
+rewrite that shares no code with the GPL-licensed original MP4Tools.
