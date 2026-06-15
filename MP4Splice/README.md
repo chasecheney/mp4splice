@@ -72,10 +72,11 @@ A video composition normalizes per-clip rotation and size into one render space,
 between mismatched sources work. On Apple Silicon, VideoToolbox runs H.264/HEVC encoding on
 the hardware media engine automatically, so re-encoding is hardware-accelerated.
 
-## Notes / next steps
+## Notes
 
-- The app icon slots are empty placeholders — drop real PNGs into `Assets.xcassets/AppIcon.appiconset`.
+- The app icon (all macOS sizes) lives in `Assets.xcassets/AppIcon.appiconset`.
 - Passthrough join requires inputs with compatible formats; otherwise enable Re-encode.
 - `project.yml` is an optional XcodeGen spec to regenerate the project if it drifts.
-- For distribution, run `scripts/notarize-release.sh` to produce a signed, notarized,
-  stapled `MP4Splice.dmg` (Developer ID, team JTU6ZV6ZZF, notary profile MP4TOOLS_NOTARY).
+- Signing/notarization reuse the team `JTU6ZV6ZZF` and notary profile `MP4TOOLS_NOTARY`.
+- For a notarized download build, run `scripts/notarize-release.sh` (produces a signed,
+  notarized, stapled `MP4Splice.dmg`). See `APP_STORE_SUBMISSION.md` for the App Store path.
