@@ -29,5 +29,8 @@ Package.resolved
 *.zip
 *.dmg
 
+# --- Local scripts ---
+gitpush.sh
+
 # --- Misc ---
 *.log
