@@ -38,6 +38,50 @@ final class JobQueue: ObservableObject {
         Task { await processNext() }
     }
 
+    /// Output URLs already targeted by jobs in the queue.
+    private var reservedOutputs: Set<URL> { Set(jobs.flatMap { $0.outputs }) }
+
+    /// Returns a non-colliding output URL by appending " (n)" before the extension.
+    /// Always avoids other queued jobs; `avoidingDisk` also avoids existing files.
+    func uniqueOutputURL(_ desired: URL, avoidingDisk: Bool) -> URL {
+        let reserved = reservedOutputs
+        func taken(_ u: URL) -> Bool {
+            reserved.contains(u) || (avoidingDisk && FileManager.default.fileExists(atPath: u.path))
+        }
+        guard taken(desired) else { return desired }
+        let dir = desired.deletingLastPathComponent()
+        let stem = desired.deletingPathExtension().lastPathComponent
+        let ext = desired.pathExtension
+        var n = 2
+        while true {
+            let name = ext.isEmpty ? "\(stem) (\(n))" : "\(stem) (\(n)).\(ext)"
+            let candidate = dir.appendingPathComponent(name)
+            if !taken(candidate) { return candidate }
+            n += 1
+        }
+    }
+
+    /// Returns a base name and matching segment URLs that collide with neither existing
+    /// files nor queued jobs, bumping the base with " (n)" until all slots are free.
+    func uniqueSplitOutputs(directory: URL, baseName: String, count: Int) -> (baseName: String, urls: [URL]) {
+        let reserved = reservedOutputs
+        func urls(_ base: String) -> [URL] {
+            (1...max(count, 1)).map {
+                directory.appendingPathComponent(String(format: "%@-%02d.mp4", base, $0))
+            }
+        }
+        func collides(_ base: String) -> Bool {
+            urls(base).contains { reserved.contains($0) || FileManager.default.fileExists(atPath: $0.path) }
+        }
+        var base = baseName
+        var n = 2
+        while collides(base) {
+            base = "\(baseName) (\(n))"
+            n += 1
+        }
+        return (base, urls(base))
+    }
+
     /// Cancels (if running) or removes a job, deleting its output files unless it
     /// completed successfully.
     func cancelOrRemove(_ job: Job) {

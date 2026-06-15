@@ -263,16 +263,15 @@ struct SplitView: View {
         guard let source else { return }
         guard let dir = Panels.pickDirectory() else { return }
 
-        let base = source.url.deletingPathExtension().lastPathComponent
+        let sourceBase = source.url.deletingPathExtension().lastPathComponent
         let sourceURL = source.url
         let segmentsSnapshot = segments
         let useReencode = reencode
         let settingsSnapshot = settings
 
-        // Deterministic output names so they can be cleaned up on cancel.
-        let outputURLs = (1...segmentsSnapshot.count).map {
-            dir.appendingPathComponent(String(format: "%@-%02d.mp4", base, $0))
-        }
+        // Pick a base name whose segment files collide with neither disk nor queued jobs.
+        let (base, outputURLs) = queue.uniqueSplitOutputs(
+            directory: dir, baseName: sourceBase, count: segmentsSnapshot.count)
 
         let job = Job(name: "\(base) (\(segmentsSnapshot.count) parts)", kind: "Split", outputs: outputURLs) { progress in
             _ = try await VideoSplitter.split(

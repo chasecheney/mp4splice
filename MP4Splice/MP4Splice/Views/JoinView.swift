@@ -331,7 +331,9 @@ struct JoinView: View {
         errorMessage = nil
         status = ""
         guard items.count >= 2 else { return }
-        guard let output = Panels.saveMovie(defaultName: suggestedJoinName()) else { return }
+        guard let chosen = Panels.saveMovie(defaultName: suggestedJoinName()) else { return }
+        // Don't clobber another queued job's output (disk collisions are handled by the save panel).
+        let output = queue.uniqueOutputURL(chosen, avoidingDisk: false)
 
         let urls = items.map(\.url)
         let useReencode = reencode
