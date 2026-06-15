@@ -1,4 +1,4 @@
-# MP4Splice v1.0.0
+# MP4Splice v1.0.1
 
 A native macOS app to **join** and **split** video files, built in Swift + SwiftUI on
 AVFoundation. Universal binary (Apple Silicon + Intel), no bundled binaries, no Carbon.
