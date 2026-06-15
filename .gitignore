@@ -25,5 +25,9 @@ xcuserdata/
 .swiftpm/
 Package.resolved
 
+# --- Build artifacts / release assets ---
+*.zip
+*.dmg
+
 # --- Misc ---
 *.log
