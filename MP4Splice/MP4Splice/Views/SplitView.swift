@@ -1,4 +1,6 @@
 import SwiftUI
+import AVKit
+import UniformTypeIdentifiers
 
 struct SplitView: View {
     enum Mode: String, CaseIterable, Identifiable {
@@ -10,6 +12,8 @@ struct SplitView: View {
     @EnvironmentObject var queue: JobQueue
 
     @State private var source: MediaItem?
+    @State private var player: AVPlayer?
+    @State private var isDropTargeted = false
     @State private var mode: Mode = .equalParts
     @State private var partCount = 2
     @State private var splitPointText = ""
@@ -23,9 +27,11 @@ struct SplitView: View {
         VStack(alignment: .leading, spacing: 12) {
             QueueIndicator()
 
-            Text("Split one MP4 into multiple files.")
+            Text("Split one video into multiple files. Drag a file in, or use Choose File.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
+
+            playerArea
 
             sourceRow
 
@@ -52,6 +58,34 @@ struct SplitView: View {
             }
 
             controls
+        }
+    }
+
+    private var playerArea: some View {
+        ZStack {
+            if let player {
+                VideoPlayer(player: player)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.secondary.opacity(0.08))
+                VStack(spacing: 6) {
+                    Image(systemName: "film")
+                        .font(.system(size: 28))
+                    Text("Drag a video here to preview")
+                }
+                .foregroundStyle(.tertiary)
+            }
+        }
+        .frame(height: 260)
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(Color.accentColor, lineWidth: 2)
+                .opacity(isDropTargeted ? 1 : 0)
+        }
+        .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+            handleDrop(providers)
+            return true
         }
     }
 
@@ -146,6 +180,27 @@ struct SplitView: View {
 
     private func pickSource() {
         guard let url = Panels.pickMovies(allowsMultiple: false).first else { return }
+        load(url)
+    }
+
+    private func handleDrop(_ providers: [NSItemProvider]) {
+        guard let provider = providers.first(where: { $0.canLoadObject(ofClass: URL.self) }) else { return }
+        _ = provider.loadObject(ofClass: URL.self) { url, _ in
+            guard let url, Self.isMovie(url) else { return }
+            Task { @MainActor in load(url) }
+        }
+    }
+
+    private static func isMovie(_ url: URL) -> Bool {
+        guard let type = UTType(filenameExtension: url.pathExtension) else { return false }
+        return type.conforms(to: .movie) || type.conforms(to: .audiovisualContent)
+    }
+
+    /// Loads a source file, building the preview player and metadata.
+    private func load(_ url: URL) {
+        player = AVPlayer(url: url)
+        status = ""
+        errorMessage = nil
         Task { source = await MediaItem.load(from: url) }
     }
 
