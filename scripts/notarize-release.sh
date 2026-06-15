@@ -6,12 +6,12 @@
 # One-time setup:
 #   1. Have a "Developer ID Application" certificate in your login keychain
 #      (Xcode → Settings → Accounts → Manage Certificates → +).
-#   2. Put your Team ID in ExportOptions-DeveloperID.plist (replace YOUR_TEAM_ID).
-#   3. Store notarization credentials once:
-#        xcrun notarytool store-credentials MP4SpliceNotary \
-#          --apple-id "you@example.com" --team-id "YOURTEAMID" \
+#   2. Team ID (JTU6ZV6ZZF) is already set in ExportOptions-DeveloperID.plist.
+#   3. Reuses the existing MP4TOOLS_NOTARY keychain profile (account-level, shared
+#      with the MP4tools+ project). If it's not on this Mac, create it once:
+#        xcrun notarytool store-credentials MP4TOOLS_NOTARY \
+#          --apple-id "tom@cheney.com" --team-id "JTU6ZV6ZZF" \
 #          --password "app-specific-password"
-#      (Create the app-specific password at appleid.apple.com.)
 #
 # Usage:
 #   TEAM_ID=ABCDE12345 ./scripts/notarize-release.sh
@@ -21,7 +21,8 @@ set -euo pipefail
 APP_NAME="MP4Splice"
 SCHEME="MP4Splice"
 PROJECT="MP4Splice/MP4Splice.xcodeproj"
-NOTARY_PROFILE="${NOTARY_PROFILE:-MP4SpliceNotary}"
+# Reuses the existing account-level notary profile from the MP4tools+ project.
+NOTARY_PROFILE="${NOTARY_PROFILE:-MP4TOOLS_NOTARY}"
 
 BUILD="build"
 ARCHIVE="$BUILD/$APP_NAME.xcarchive"
