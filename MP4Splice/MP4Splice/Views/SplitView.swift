@@ -61,7 +61,10 @@ struct SplitView: View {
             }
 
             controls
+
+            Spacer(minLength: 0)
         }
+        .frame(maxHeight: .infinity, alignment: .top)
     }
 
     private var playerArea: some View {
