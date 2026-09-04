@@ -75,7 +75,7 @@ struct SplitView: View {
     private var playerArea: some View {
         ZStack {
             if let player {
-                VideoPlayer(player: player)
+                PlayerView(player: player)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             } else {
                 RoundedRectangle(cornerRadius: 8)
@@ -293,6 +293,24 @@ struct SplitView: View {
         }
         queue.add(job)
         status = "Added “\(base)” to the queue"
+    }
+}
+
+/// Wraps AppKit's AVPlayerView. The SwiftUI `VideoPlayer` (_AVKit_SwiftUI) crashes with a
+/// Swift metadata fatalError on some macOS builds, so we use the native view directly.
+struct PlayerView: NSViewRepresentable {
+    let player: AVPlayer
+
+    func makeNSView(context: Context) -> AVPlayerView {
+        let view = AVPlayerView()
+        view.controlsStyle = .inline
+        view.videoGravity = .resizeAspect
+        view.player = player
+        return view
+    }
+
+    func updateNSView(_ nsView: AVPlayerView, context: Context) {
+        if nsView.player !== player { nsView.player = player }
     }
 }
 
