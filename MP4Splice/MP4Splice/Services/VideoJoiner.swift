@@ -86,9 +86,10 @@ enum VideoJoiner {
         canvasH -= canvasH % 2
         let renderSize = CGSize(width: canvasW, height: canvasH)
 
+        // Video only: audio is read per piece from the clips themselves (AudioPieceFeeder),
+        // because composition audio cut at loop boundaries can hang the reader.
         let composition = AVMutableComposition()
-        let audioTrack = composition.addMutableTrack(
-            withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)
+        var audioPieces: [ReencodeEngine.AudioPiece] = []
 
         var instructions: [AVMutableVideoCompositionInstruction] = []
         var cursor = CMTime.zero
@@ -109,9 +110,8 @@ enum VideoJoiner {
             }
             try compVideo.insertTimeRange(range, of: sourceVideo, at: cursor)
 
-            if let sourceAudio = try await asset.loadTracks(withMediaType: .audio).first, let audioTrack {
-                try audioTrack.insertTimeRange(range, of: sourceAudio, at: cursor)
-            }
+            let sourceAudio = try await asset.loadTracks(withMediaType: .audio).first
+            audioPieces.append(.init(asset: asset, track: sourceAudio, range: range, at: cursor))
 
             let natural = try await sourceVideo.load(.naturalSize)
             let preferred = try await sourceVideo.load(.preferredTransform)
@@ -137,7 +137,8 @@ enum VideoJoiner {
 
         try await ReencodeEngine.encode(
             asset: composition, videoComposition: videoComposition,
-            timeRange: nil, to: outputURL, settings: settings, progress: progress)
+            timeRange: nil, audioPieces: audioPieces,
+            to: outputURL, settings: settings, progress: progress)
     }
 
     // MARK: - Geometry helpers
