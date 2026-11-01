@@ -4,7 +4,7 @@ name: MP4Splice
 options:
   bundleIdPrefix: org.mp4splice
   deploymentTarget:
-    macOS: "13.0"
+    macOS: "14.0"
   createIntermediateGroups: true
 settings:
   base:

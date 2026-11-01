@@ -9,19 +9,24 @@ enum VideoJoiner {
                      to outputURL: URL,
                      reencode: Bool = false,
                      settings: EncodeSettings = EncodeSettings(),
+                     ranges: [[CMTimeRange]?]? = nil,
                      progress: @escaping @MainActor (Double) -> Void) async throws {
         guard !urls.isEmpty else { throw VideoError.noInputs }
+        // Per clip, the source ranges to play in order; nil = the whole clip. Used to keep
+        // one pass of a looping clip (LoopDetector), which needs reencode for exact cuts.
+        let pieces = ranges ?? Array(repeating: nil, count: urls.count)
 
         if reencode {
-            try await joinReencoding(urls: urls, to: outputURL, settings: settings, progress: progress)
+            try await joinReencoding(urls: urls, ranges: pieces, to: outputURL, settings: settings, progress: progress)
         } else {
-            try await joinPassthrough(urls: urls, to: outputURL, progress: progress)
+            try await joinPassthrough(urls: urls, ranges: pieces, to: outputURL, progress: progress)
         }
     }
 
     // MARK: - Passthrough (lossless remux, same-format inputs)
 
     private static func joinPassthrough(urls: [URL],
+                                        ranges: [[CMTimeRange]?],
                                         to outputURL: URL,
                                         progress: @escaping @MainActor (Double) -> Void) async throws {
         let composition = AVMutableComposition()
@@ -33,10 +38,11 @@ enum VideoJoiner {
             withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)
 
         var cursor = CMTime.zero
-        for url in urls {
+        for (url, chosen) in zip(urls, ranges) {
             let asset = AVURLAsset(url: url)
-            let duration = try await asset.load(.duration)
-            let range = CMTimeRange(start: .zero, duration: duration)
+            let full = CMTimeRange(start: .zero, duration: try await asset.load(.duration))
+            for range in chosen ?? [full] {
+            let duration = range.duration
 
             guard let sourceVideo = try await asset.loadTracks(withMediaType: .video).first else {
                 throw VideoError.noVideoTrack(url)
@@ -46,6 +52,7 @@ enum VideoJoiner {
                 try audioTrack.insertTimeRange(range, of: sourceAudio, at: cursor)
             }
             cursor = cursor + duration
+            }
         }
 
         guard let session = AVAssetExportSession(
@@ -62,6 +69,7 @@ enum VideoJoiner {
     // MARK: - Re-encode (scales each clip to a common canvas)
 
     private static func joinReencoding(urls: [URL],
+                                       ranges: [[CMTimeRange]?],
                                        to outputURL: URL,
                                        settings: EncodeSettings,
                                        progress: @escaping @MainActor (Double) -> Void) async throws {
@@ -70,6 +78,10 @@ enum VideoJoiner {
         let aspect = firstOriented.height > 0 ? firstOriented.width / firstOriented.height : 16.0 / 9.0
         var canvasH = settings.resolution.targetHeight
         var canvasW = Int((Double(canvasH) * aspect).rounded())
+        if let canvas = settings.canvas {          // Automatic mode: exact size
+            canvasW = Int(canvas.width)
+            canvasH = Int(canvas.height)
+        }
         canvasW -= canvasW % 2
         canvasH -= canvasH % 2
         let renderSize = CGSize(width: canvasW, height: canvasH)
@@ -81,10 +93,11 @@ enum VideoJoiner {
         var instructions: [AVMutableVideoCompositionInstruction] = []
         var cursor = CMTime.zero
 
-        for url in urls {
+        for (url, chosen) in zip(urls, ranges) {
             let asset = AVURLAsset(url: url)
-            let duration = try await asset.load(.duration)
-            let range = CMTimeRange(start: .zero, duration: duration)
+            let full = CMTimeRange(start: .zero, duration: try await asset.load(.duration))
+            for range in chosen ?? [full] {
+            let duration = range.duration
 
             guard let sourceVideo = try await asset.loadTracks(withMediaType: .video).first else {
                 throw VideoError.noVideoTrack(url)
@@ -114,6 +127,7 @@ enum VideoJoiner {
             instructions.append(instruction)
 
             cursor = cursor + duration
+            }
         }
 
         let videoComposition = AVMutableVideoComposition()

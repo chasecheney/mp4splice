@@ -15,6 +15,10 @@ struct MediaItem: Identifiable, Hashable {
     var videoCodec: String = ""
     var audioCodec: String = ""
     var audioBitrate: Double = 0   // bits per second
+    var videoBitrate: Double = 0   // bits per second (estimated data rate)
+    /// Set once LoopDetector has looked at the clip; `loop` is nil when it doesn't repeat.
+    var loopChecked = false
+    var loop: LoopDetector.Loop?
 
     var displayName: String { url.lastPathComponent }
 
@@ -46,7 +50,13 @@ struct MediaItem: Identifiable, Hashable {
         return "\(Int((audioBitrate / 1000).rounded())) kbps"
     }
 
-    static func == (lhs: MediaItem, rhs: MediaItem) -> Bool { lhs.id == rhs.id }
+    // Equality must include everything a row displays that can change after loading:
+    // SwiftUI diffs rows with ==, and an id-only == made it skip redrawing when the loop
+    // check finished, so spinners stayed until something else forced a redraw.
+    // (Hash stays id-only: equal items still hash equally.)
+    static func == (lhs: MediaItem, rhs: MediaItem) -> Bool {
+        lhs.id == rhs.id && lhs.loopChecked == rhs.loopChecked && lhs.loop == rhs.loop
+    }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 
     /// Loads duration, file size, and detailed track info off the main actor.
@@ -74,6 +84,9 @@ struct MediaItem: Identifiable, Hashable {
             }
             if let descs = try? await video.load(.formatDescriptions), let desc = descs.first {
                 item.videoCodec = codecName(CMFormatDescriptionGetMediaSubType(desc))
+            }
+            if let rate = try? await video.load(.estimatedDataRate), rate > 0 {
+                item.videoBitrate = Double(rate)
             }
         }
 
