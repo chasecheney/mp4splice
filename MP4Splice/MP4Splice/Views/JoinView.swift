@@ -195,6 +195,21 @@ struct JoinView: View {
             return .handled
         }
         .quickLookPreview($previewURL, in: items.map(\.url))
+        // Like Finder: while the preview is open, moving the selection changes what it
+        // shows, and stepping through the preview moves the selection.
+        .onChange(of: selection) { _ in
+            if previewURL != nil,
+               let url = items.first(where: { selection.contains($0.id) })?.url,
+               url != previewURL {
+                previewURL = url
+            }
+        }
+        .onChange(of: previewURL) { url in
+            if let url, let item = items.first(where: { $0.url == url }),
+               !selection.contains(item.id) {
+                selection = [item.id]
+            }
+        }
         .frame(height: 380)
         .overlay {
             if items.isEmpty {
