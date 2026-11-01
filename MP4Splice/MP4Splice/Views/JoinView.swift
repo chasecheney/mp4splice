@@ -189,9 +189,17 @@ struct JoinView: View {
                 previewURL = item.url       // double-click previews
             }
         }
+        // Space toggles the preview and Escape closes it, as in Finder. Keys stay with the
+        // list while the panel shows, so without this Space just reopened it.
         .onKeyPress(.space) {
+            if previewURL != nil { previewURL = nil; return .handled }
             guard !selection.isEmpty else { return .ignored }
             previewSelected()
+            return .handled
+        }
+        .onKeyPress(.escape) {
+            guard previewURL != nil else { return .ignored }
+            previewURL = nil
             return .handled
         }
         .quickLookPreview($previewURL, in: items.map(\.url))
