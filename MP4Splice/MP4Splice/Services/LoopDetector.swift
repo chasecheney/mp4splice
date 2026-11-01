@@ -163,8 +163,12 @@ enum LoopDetector {
         // ordinary 6), though it plays as continuous.
         let copiesFrom = repeatStart - period        // first frame the repeat copies
         if repeatStart < total, copiesFrom <= Int(fps * 2), end - copiesFrom > Int(fps) {
-            let jumps = ((copiesFrom + 1)..<end).map { (diff(fr[$0], fr[$0 - 1]), $0) }
-            if let seam = jumps.max(by: { $0.0 < $1.0 })?.1, seam > first0 {
+            // The boundary itself (last kept frame -> first copy) is a candidate too: when
+            // it is the biggest jump, the clip was saved at the loop's start and is already
+            // in order. Without it, a smooth loop got a random interior frame as its "seam".
+            let last = end < total ? end + 1 : end
+            let jumps = ((copiesFrom + 1)..<last).map { (diff(fr[$0], fr[$0 - 1]), $0) }
+            if let seam = jumps.max(by: { $0.0 < $1.0 })?.1, seam > first0, seam < end {
                 let ranges = [CMTimeRange(start: t(seam), end: t(end)),
                               CMTimeRange(start: t(first0), end: t(seam))]
                 return Loop(ranges: ranges,
