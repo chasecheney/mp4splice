@@ -112,10 +112,10 @@ enum ReencodeEngine {
 
         // MARK: Run
         guard reader.startReading() else {
-            throw VideoError.exportFailed(reader.error?.localizedDescription ?? "reader failed to start")
+            throw VideoError.exportFailed(VideoError.detail(reader.error, "reader failed to start"))
         }
         guard writer.startWriting() else {
-            throw VideoError.exportFailed(writer.error?.localizedDescription ?? "writer failed to start")
+            throw VideoError.exportFailed(VideoError.detail(writer.error, "writer failed to start"))
         }
         writer.startSession(atSourceTime: range.start)
 
@@ -146,11 +146,13 @@ enum ReencodeEngine {
             throw VideoError.cancelled
         }
         if reader.status == .failed {
-            throw VideoError.exportFailed(reader.error?.localizedDescription ?? "read error")
+            throw VideoError.exportFailed(VideoError.detail(reader.error, "read error"))
         }
+        let finisher = await ExportHelper.watchFinishing(outputURL, progress: progress)
         await writer.finishWriting()
+        finisher.cancel()
         if writer.status == .failed {
-            throw VideoError.exportFailed(writer.error?.localizedDescription ?? "write error")
+            throw VideoError.exportFailed(VideoError.detail(writer.error, "write error"))
         }
         await progress(1.0)
     }

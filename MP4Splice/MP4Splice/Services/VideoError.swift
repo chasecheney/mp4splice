@@ -1,6 +1,20 @@
 import Foundation
 
 enum VideoError: LocalizedError {
+    /// AVFoundation's description alone is often just "The operation could not be
+    /// completed"; the domain/code chain (e.g. OSStatus -17913) is what pins it down.
+    static func detail(_ error: Error?, _ fallback: String) -> String {
+        guard let error else { return fallback }
+        var parts: [String] = []
+        var current: NSError? = error as NSError
+        while let e = current, parts.count < 4 {
+            let reason = e.localizedFailureReason.map { " – \($0)" } ?? ""
+            parts.append("\(e.localizedDescription)\(reason) [\(e.domain) \(e.code)]")
+            current = e.userInfo[NSUnderlyingErrorKey] as? NSError
+        }
+        return parts.joined(separator: " ← ")
+    }
+
     case noInputs
     case unreadableAsset(URL)
     case noVideoTrack(URL)
