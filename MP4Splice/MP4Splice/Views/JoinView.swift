@@ -45,7 +45,6 @@ struct JoinView: View {
     /// Off by default; remembered once turned on.
     @AppStorage("removeRepeatedLoops") private var removeLoops = false
     @State private var settings = EncodeSettings()
-    @State private var previewURL: URL?
 
     /// The list's order is shown, not hidden in a setting: "By name" sorts (and slots new
     /// clips in by name); any hand move switches to "Custom", which never re-sorts.
@@ -186,36 +185,31 @@ struct JoinView: View {
         }
         .contextMenu(forSelectionType: MediaItem.ID.self) { _ in } primaryAction: { ids in
             if let id = ids.first, let item = items.first(where: { $0.id == id }) {
-                previewURL = item.url       // double-click previews
+                selection = [item.id]       // double-click previews
+                previewSelected()
             }
         }
-        // Space toggles the preview and Escape closes it, as in Finder. Keys stay with the
-        // list while the panel shows, so without this Space just reopened it.
+        // As in Finder: Space toggles the preview, Escape closes it, and the list keeps
+        // focus, so arrow keys move the selection and the open preview follows it.
         .onKeyPress(.space) {
-            if previewURL != nil { previewURL = nil; return .handled }
+            if QuickLook.shared.isVisible { QuickLook.shared.hide(); return .handled }
             guard !selection.isEmpty else { return .ignored }
             previewSelected()
             return .handled
         }
         .onKeyPress(.escape) {
-            guard previewURL != nil else { return .ignored }
-            previewURL = nil
+            guard QuickLook.shared.isVisible else { return .ignored }
+            QuickLook.shared.hide()
             return .handled
         }
-        .quickLookPreview($previewURL, in: items.map(\.url))
-        // Like Finder: while the preview is open, moving the selection changes what it
-        // shows, and stepping through the preview moves the selection.
         .onChange(of: selection) { _ in
-            if previewURL != nil,
-               let url = items.first(where: { selection.contains($0.id) })?.url,
-               url != previewURL {
-                previewURL = url
-            }
+            if QuickLook.shared.isVisible { previewSelected() }
         }
-        .onChange(of: previewURL) { url in
-            if let url, let item = items.first(where: { $0.url == url }),
-               !selection.contains(item.id) {
-                selection = [item.id]
+        .onAppear {
+            QuickLook.shared.moveSelection = { delta in
+                let i = items.firstIndex(where: { selection.contains($0.id) }) ?? -1
+                let j = min(max(i + delta, 0), items.count - 1)
+                if j >= 0 { selection = [items[j].id] }
             }
         }
         .frame(height: 380)
@@ -488,10 +482,10 @@ struct JoinView: View {
         orderByName = false         // a hand-made order must not be re-sorted
     }
 
-    /// Quick Look the first selected clip (in list order); arrow keys in the panel step
-    /// through the rest of the list.
+    /// Quick Look the first selected clip (in list order).
     private func previewSelected() {
-        previewURL = items.first { selection.contains($0.id) }?.url
+        guard let i = items.firstIndex(where: { selection.contains($0.id) }) else { return }
+        QuickLook.shared.show(items.map(\.url), at: i)
     }
 
     private func removeSelected() {

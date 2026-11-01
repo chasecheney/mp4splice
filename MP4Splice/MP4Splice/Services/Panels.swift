@@ -1,4 +1,5 @@
 import AppKit
+import Quartz
 import UniformTypeIdentifiers
 
 /// Thin wrappers around AppKit open/save panels for picking media files and outputs.
@@ -84,5 +85,96 @@ enum FolderAccess {
         let a = ancestor.standardizedFileURL.resolvingSymlinksInPath().path
         let f = folder.standardizedFileURL.resolvingSymlinksInPath().path
         return f == a || f.hasPrefix(a.hasSuffix("/") ? a : a + "/")
+    }
+}
+
+/// Finder-style Quick Look: the panel is shown without taking focus, so the list keeps
+/// the keyboard (arrow keys move the selection natively) and the panel follows the
+/// selection. SwiftUI's `.quickLookPreview` makes the panel the key window instead.
+/// The panel finds its controller through the responder chain; `AppDelegate` answers.
+@MainActor
+final class QuickLook: NSObject, QLPreviewPanelDataSource, QLPreviewPanelDelegate {
+    static let shared = QuickLook()
+    private var urls: [URL] = []
+    private var index = 0
+    private weak var returnWindow: NSWindow?
+    /// Moves the list selection by ±1. The panel takes key status when it opens (it does
+    /// in Finder too), so ↑/↓ arrive here and are handed back to the list, as Finder does.
+    var moveSelection: ((Int) -> Void)?
+
+    var isVisible: Bool { QLPreviewPanel.sharedPreviewPanelExists() && QLPreviewPanel.shared().isVisible }
+
+    func show(_ urls: [URL], at index: Int) {
+        self.urls = urls
+        self.index = index
+        let panel = QLPreviewPanel.shared()!
+        // Also attach directly: SwiftUI wraps the app delegate, so AppDelegate may not be
+        // where the panel looks for a controller in the responder chain.
+        if panel.dataSource !== self { attach(panel) }
+        if panel.isVisible {
+            panel.reloadData()
+            panel.currentPreviewItemIndex = index
+        } else {
+            if let key = NSApp.keyWindow, key !== panel { returnWindow = key }
+            panel.becomesKeyOnlyIfNeeded = true
+            panel.orderFront(nil)          // not makeKeyAndOrderFront
+        }
+    }
+
+    func hide() {
+        if isVisible { QLPreviewPanel.shared().orderOut(nil) }
+        restoreFocus()
+    }
+
+    /// Back to the window the preview was opened from, so the list has the keyboard.
+    private func restoreFocus() {
+        returnWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    nonisolated func previewPanel(_ panel: QLPreviewPanel!, handle event: NSEvent!) -> Bool {
+        MainActor.assumeIsolated {
+            guard event.type == .keyDown else { return false }
+            switch event.keyCode {
+            case 125: moveSelection?(1);  return true    // ↓
+            case 126: moveSelection?(-1); return true    // ↑
+            case 49, 53: hide();          return true    // Space, Escape
+            default: return false
+            }
+        }
+    }
+
+    nonisolated func windowWillClose(_ notification: Notification) {
+        MainActor.assumeIsolated { restoreFocus() }   // closed with its own button
+    }
+
+    func attach(_ panel: QLPreviewPanel) {
+        panel.dataSource = self
+        panel.delegate = self
+        panel.reloadData()
+        panel.currentPreviewItemIndex = index
+    }
+
+    func detach(_ panel: QLPreviewPanel) {
+        panel.dataSource = nil
+        panel.delegate = nil
+    }
+
+    nonisolated func numberOfPreviewItems(in panel: QLPreviewPanel!) -> Int {
+        MainActor.assumeIsolated { urls.count }
+    }
+
+    nonisolated func previewPanel(_ panel: QLPreviewPanel!, previewItemAt index: Int) -> QLPreviewItem! {
+        MainActor.assumeIsolated { urls[index] as NSURL }
+    }
+}
+
+/// Takes Quick Look panel control for the app (end of the responder chain).
+final class AppDelegate: NSResponder, NSApplicationDelegate {
+    override func acceptsPreviewPanelControl(_ panel: QLPreviewPanel!) -> Bool { true }
+    override func beginPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        MainActor.assumeIsolated { QuickLook.shared.attach(panel) }
+    }
+    override func endPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        MainActor.assumeIsolated { QuickLook.shared.detach(panel) }
     }
 }
