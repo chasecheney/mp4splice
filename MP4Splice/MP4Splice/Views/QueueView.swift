@@ -118,7 +118,7 @@ struct QueueIndicator: View {
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
                 if let running = queue.runningJob {
-                    Text("Processing “\(running.name)” — \(Int(running.progress * 100))%")
+                    Text("“\(running.name)” — \(running.statusText) — \(Int(running.progress * 100))%")
                         .font(.caption)
                 }
                 if queue.pendingCount > 0 {

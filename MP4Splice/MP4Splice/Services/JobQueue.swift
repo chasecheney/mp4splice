@@ -116,10 +116,18 @@ final class JobQueue: ObservableObject {
         isRunning = true
         job.status = .running
         job.progress = 0
+        // Joins run for minutes while the user is in other apps; keep App Nap off them.
+        let activity = ProcessInfo.processInfo.beginActivity(
+            options: .userInitiated, reason: "Running “\(job.name)”")
+        defer { ProcessInfo.processInfo.endActivity(activity) }
 
         let task = Task { () -> JobOutcome in
             do {
-                try await job.operation { progress in job.progress = progress }
+                try await JobPhase.$report.withValue({ phase, reset in
+                    job.setPhase(phase, resetProgress: reset)
+                }) {
+                    try await job.operation { progress in job.progress = progress }
+                }
                 return .completed
             } catch is CancellationError {
                 return .cancelled

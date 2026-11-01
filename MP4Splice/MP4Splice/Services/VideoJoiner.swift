@@ -12,6 +12,7 @@ enum VideoJoiner {
                      progress: @escaping @MainActor (Double) -> Void) async throws {
         guard !urls.isEmpty else { throw VideoError.noInputs }
 
+        await JobPhase.set(reencode ? "Encoding" : "Joining")
         if reencode {
             try await joinReencoding(urls: urls, to: outputURL, settings: settings, progress: progress)
         } else {
