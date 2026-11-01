@@ -39,12 +39,33 @@ enum LoopDetector {
               duration.seconds > 0, duration.seconds <= maxClipSeconds,
               let track = try? await asset.loadTracks(withMediaType: .video).first,
               let fps = try? await track.load(.nominalFrameRate), fps > 0,
-              let (frames, times) = try? thumbnails(asset: asset, track: track)
+              let (frames, times) = try? await decodeOffPool(asset: asset, track: track)
         else { return nil }
         return analyse(frames: frames, times: times, fps: Double(fps), duration: duration)
     }
 
     // MARK: - Decoding
+
+    /// `copyNextSampleBuffer` blocks its thread for the whole decode. Run on Swift's
+    /// cooperative pool (one thread per core), ten or more clips checked at once took every
+    /// thread and stalled: no reader finished and later clips never loaded. Decoding runs
+    /// here instead, two clips at a time.
+    private static let decodeQueue: OperationQueue = {
+        let q = OperationQueue()
+        q.name = "LoopDetector.decode"
+        q.maxConcurrentOperationCount = 2
+        q.qualityOfService = .userInitiated
+        return q
+    }()
+
+    private static func decodeOffPool(asset: AVAsset, track: AVAssetTrack) async throws
+        -> ([[UInt8]], [CMTime]) {
+        try await withCheckedThrowingContinuation { cont in
+            decodeQueue.addOperation {
+                cont.resume(with: Result { try thumbnails(asset: asset, track: track) })
+            }
+        }
+    }
 
     /// Every frame as a thumbW×thumbH luma thumbnail, with its presentation time.
     private static func thumbnails(asset: AVAsset, track: AVAssetTrack) throws -> ([[UInt8]], [CMTime]) {
