@@ -123,10 +123,17 @@ struct JoinView: View {
                 if m == .custom, let first = items.first { settings.applyDefaults(from: first) }
             }
 
-            Toggle("Remove repeated loops", isOn: $removeLoops)
-                .font(.callout)
-                .help("For clips that replay themselves (story exports, Boomerangs, GIF videos): "
-                      + "keep one full loop, starting at the loop's own beginning. Re-encodes.")
+            VStack(alignment: .leading, spacing: 2) {
+                Toggle("Remove repeated loops", isOn: $removeLoops)
+                    .font(.callout)
+                    .help("Drops frames that repeat earlier footage. If a clip was saved partway "
+                          + "into its loop, the loop's start moves to the front.")
+                Text("For clips that replay themselves, like story exports and Boomerangs. "
+                     + "Keeps the footage once and re-encodes.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 20)   // under the label, past the checkbox
+            }
             if removeLoops, mode == .lossless, loopsCut > 0 {
                 Label("Lossless only can't cut loops — they're kept whole.",
                       systemImage: "info.circle")
