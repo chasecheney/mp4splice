@@ -132,7 +132,7 @@ final class JobQueue: ObservableObject {
         }
         currentTask = task
         currentJobID = job.id
-        let outcome = await task.value
+        let outcome = await outcomeOrStall(of: task, job: job)
         currentTask = nil
         currentJobID = nil
 
@@ -151,6 +151,59 @@ final class JobQueue: ObservableObject {
 
         isRunning = false
         await processNext()
+    }
+
+    // MARK: - Stall watchdog
+
+    /// A running job whose progress and output size all stay still this long is
+    /// stopped and marked failed, so one stuck job can't freeze the queue. AVFoundation can
+    /// block inside a read for good (2026-11-01: joins stuck at 19–29% with 0% CPU), and a
+    /// read that never returns can't see a cancel either; the job's task is then abandoned.
+    var stallSeconds: TimeInterval = 60
+
+    /// Everything that moves while a job is alive.
+    private struct Liveness: Equatable {
+        let progress: Double
+        let outputBytes: Int
+    }
+
+    private func liveness(of job: Job) -> Liveness {
+        // Sizes of the job's own output paths only; the folder is never listed.
+        let bytes = job.outputs.reduce(0) { sum, url in
+            sum + ((try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? 0)
+        }
+        return Liveness(progress: job.progress, outputBytes: bytes)
+    }
+
+    /// Resumes once with whichever comes first: the task's outcome, or a stall.
+    @MainActor private final class Once {
+        private var cont: CheckedContinuation<JobOutcome, Never>?
+        init(_ cont: CheckedContinuation<JobOutcome, Never>) { self.cont = cont }
+        var isDone: Bool { cont == nil }
+        func resume(_ outcome: JobOutcome) { cont?.resume(returning: outcome); cont = nil }
+    }
+
+    private func outcomeOrStall(of task: Task<JobOutcome, Never>, job: Job) async -> JobOutcome {
+        let limit = stallSeconds
+        return await withCheckedContinuation { cont in
+            let once = Once(cont)
+            Task { once.resume(await task.value) }
+            Task {
+                var last = liveness(of: job)
+                var lastChange = Date()
+                while !once.isDone {
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    let now = liveness(of: job)
+                    if now != last {
+                        last = now
+                        lastChange = Date()
+                    } else if Date().timeIntervalSince(lastChange) >= limit {
+                        task.cancel()   // lets it unwind if it can; the queue moves on regardless
+                        once.resume(.failed("Stopped: no progress for \(Int(limit)) s."))
+                    }
+                }
+            }
+        }
     }
 
     private func deleteOutputs(of job: Job) {
